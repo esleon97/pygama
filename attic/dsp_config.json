@@ -1,18 +1,42 @@
 {
   "outputs": [
+<<<<<<< HEAD:attic/dsp_config.json
     "timestamp", "channel", "trapEmax", "trapEftp", "triE", "bl_mean", "bl_sig", "A_10", "AoE", "dcr", "zacE", "cuspE"
+=======
+    "timestamp", "channel", "energy", "trapEmax", "trapEftp", "triE", "bl", "bl_sig", "A_10", "AoE", "dcr", "zacE", "cuspE", "power_spect", "curr_psd", "curr", "hf_max", "curr_psd_sum", "curr_psd_sum10", "wf_norm", "wf_blsub", "bl_slope", "tp_0", "tp_50"
+>>>>>>> Modified processors.py and dsp_config.json:pygama/io/dsp_config.json
   ],
   "processors":{
     "bl_mean , bl_sig, bl_slope, bl_intercept":{
       "function": "linear_slope_fit",
       "module": "pygama.dsp.processors",
+<<<<<<< HEAD:attic/dsp_config.json
       "args" : ["waveform[0: 1000]", "bl_mean","bl_sig", "bl_slope","bl_intercept"],
       "unit": ["ADC","ADC","ADC","ADC"]
+=======
+      "args" : ["waveform[0:500]", "bl", "bl_sig"],
+      "prereqs": ["waveform"],
+      "unit": ["ADC", "ADC"]
+>>>>>>> Modified processors.py and dsp_config.json:pygama/io/dsp_config.json
+    },
+    "bl_intercept, bl_slope":{
+      "function": "linear_fit",
+      "module": "pygama.dsp.processors",
+      "args" : ["waveform[0:500]", "bl_intercept", "bl_slope"],
+      "prereqs": ["waveform"],
+      "unit": ["", ""]
     },
     "wf_blsub":{
       "function": "subtract",
       "module": "numpy",
       "args": ["waveform", "bl_mean", "wf_blsub"],
+      "unit": "ADC"
+    },
+    "wf_norm": {
+      "function": "divide",
+      "module": "numpy",
+      "args":["wf_blsub", "wf_blsub_max", "wf_norm"],
+      "prereqs": ["wf_blsub", "wf_blsub_max"],
       "unit": "ADC"
     },
     "wf_pz": {
@@ -114,6 +138,14 @@
       "kwargs": {"signature":"(n),()->()", "types":["fi->f"]},
       "unit": "ADC"
     },
+    "wf_blsub_max": {
+      "function": "amax",
+      "module": "numpy",
+      "args": ["wf_blsub", 1, "wf_blsub_max"],
+      "kwargs": {"signature":"(n),()->()", "types":["fi->f"]},
+      "unit": "ADC",
+      "prereqs": ["wf_blsub"]
+    },
     "curr10": {
       "comment": "3rd argument allocates memory for a derivative of type float",
       "function": "avg_current",
@@ -182,13 +214,40 @@
       "kwargs": {"signature":"(n),()->()", "types":["fi->f"]},
       "unit": ""
     },
+    "curr_psd_sum": {
+       "function": "sum_wf",
+       "module": "pygama.dsp.processors",
+       "args": ["curr_psd","curr_psd_sum"],
+       "unit": "",
+       "prereqs": ["curr_psd"]
+    },
+    "curr_psd_sum10": {
+       "function": "sum_wf",
+       "module": "pygama.dsp.processors",
+       "args": ["curr_psd[round(10*mhz*len(curr)):]","curr_psd_sum10"],
+       "unit": "",
+       "prereqs": ["curr_psd"]
+    },
     "power_spect": {
       "function": "psd",
       "module": "pygama.dsp.processors",
       "args": ["wf_blsub", "power_spect"],
       "init_args": ["wf_blsub", "power_spect(len(wf_blsub)//2+1, f)"],
+<<<<<<< HEAD:attic/dsp_config.json
       "unit": "MHz"
+=======
+      "unit": "MHz",
+      "prereqs": ["wf_blsub"]
+    },
+    "wf_fft": {
+      "function": "dft",
+      "module": "pygama.dsp.processors",
+      "args": ["wf_blsub", "wf_fft"],
+      "init_args": ["wf_blsub", "wf_fft(len(wf_blsub)//2+1, f)"],
+      "unit": "MHz",
+      "prereqs": ["wf_blsub"]
+>>>>>>> Modified processors.py and dsp_config.json:pygama/io/dsp_config.json
     }
-    
+
   }
 }

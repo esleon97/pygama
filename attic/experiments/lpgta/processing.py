@@ -42,9 +42,16 @@ def main():
     arg('-o', '--over', action=st, help='overwrite existing files')
     arg('-n', '--nwfs', type=int, help='limit num. waveforms')
     arg('-v', '--verbose', action=st, help='verbose mode')
+<<<<<<< HEAD:attic/experiments/lpgta/processing.py
     arg('-l', '--bl', type=int, default=3200, help='buffer length for chunked reads for DSP')
     arg('-w', '--bw', type=int, default=8, help='buffer width for DSP')
     arg('-c', '--cwd', action=st, help="save output to current directory")
+=======
+    arg('-c', '--cwd', action=st, help="save output to current directory")
+    
+    by default it can move it into place in the directory tree, but have an option to leave it in place in CWD
+
+>>>>>>> Modified processors.py:experiments/lpgta/processing.py
     args = par.parse_args()
 
     # print out the arguments for log files
@@ -62,11 +69,17 @@ def main():
 
     # -- run routines --
     query = "YYYYmmdd == '" + args.date + "'" if args.date else args.q
+<<<<<<< HEAD:attic/experiments/lpgta/processing.py
     if args.date and args.q:
         query += ' and ' + args.q
     if args.dg or args.d2r or args.r2d: dg = load_datagroup(query)
     if args.d2r: d2r(dg, args.over, nwfs, args.verbose, args.cwd)
     if args.r2d: r2d(dg, args.over, nwfs, args.verbose, args.cwd, args.bl, args.bw)
+=======
+    if args.dg: dg = load_datagroup(query)
+    if args.d2r: d2r(dg, args.over, nwfs, args.verbose, args.cwd)
+    if args.r2d: r2d(dg, args.over, nwfs, args.verbose, args.cwd)
+>>>>>>> Modified processors.py:experiments/lpgta/processing.py
 
 
 def load_datagroup(query=None):
@@ -78,8 +91,13 @@ def load_datagroup(query=None):
     # NOTE: for now, we have to edit this line to choose which files to process
     # process one big cal file (64 GB)
     #query = "run==18 and YYYYmmdd == '20200302' and hhmmss == '184529'"
+<<<<<<< HEAD:attic/experiments/lpgta/processing.py
     if query is not None: dg.fileDB.query(query, inplace=True)
 
+=======
+    if query is not None: dg.file_keys.query(query, cwd=True)
+    
+>>>>>>> Modified processors.py:experiments/lpgta/processing.py
     print('files to process:')
     print(dg.fileDB)
 
@@ -159,8 +177,13 @@ def d2r(dg, overwrite=False, nwfs=None, vrb=False, cwd=False):
         # set up I/O paths
         f_daq = f"{dg.daq_dir}/{row['daq_dir']}/{row['daq_file']}"
         f_raw = f"{dg.lh5_dir}/{row['raw_path']}/{row['raw_file']}"
+<<<<<<< HEAD:attic/experiments/lpgta/processing.py
         if cwd: f_raw = f"{row['raw_file']}"
 
+=======
+        if cwd: f_raw = f'{row['raw_file']}'
+        
+>>>>>>> Modified processors.py:experiments/lpgta/processing.py
         subrun = row['cycle'] if 'cycle' in row else None
         systems = dg.subsystems
 
@@ -187,7 +210,11 @@ def d2r(dg, overwrite=False, nwfs=None, vrb=False, cwd=False):
                    n_max=nwfs, overwrite=overwrite, subrun=subrun)#, chans=chans)
 
 
+<<<<<<< HEAD:attic/experiments/lpgta/processing.py
 def r2d(dg, overwrite=False, nwfs=None, vrb=False, cwd=False, buffer_len=3200, block_width=8):
+=======
+def r2d(dg, overwrite=False, nwfs=None, vrb=False, cwd=False):
+>>>>>>> Modified processors.py:experiments/lpgta/processing.py
     """
     """
     # print(dg.fileDB)
@@ -200,7 +227,11 @@ def r2d(dg, overwrite=False, nwfs=None, vrb=False, cwd=False, buffer_len=3200, b
 
         f_raw = f"{dg.lh5_dir}/{row['raw_path']}/{row['raw_file']}"
         f_dsp = f"{dg.lh5_dir}/{row['dsp_path']}/{row['dsp_file']}"
+<<<<<<< HEAD:attic/experiments/lpgta/processing.py
         if cwd: f_dsp = f"{row['dsp_file']}"
+=======
+        if cwd: f_dsp = f'{row['dsp_file']}'
+>>>>>>> Modified processors.py:experiments/lpgta/processing.py
 
         if "sysn" in f_raw:
             tmp = {'sysn' : 'geds'} # hack for lpgta

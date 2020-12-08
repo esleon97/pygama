@@ -43,6 +43,10 @@
       "function": "pole_zero",
       "module": "pygama.dsp.processors",
       "args": ["wf_blsub", "db.pz_const", "wf_pz"],
+<<<<<<< HEAD:attic/dsp_config.json
+=======
+      "prereqs": ["wf_blsub"],
+>>>>>>> Modified processors.py:pygama/io/dsp_config.json
       "unit": "ADC",
       "defaults": { "db.pz_const":"72*us" }
     },

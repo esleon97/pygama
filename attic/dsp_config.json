@@ -1,10 +1,14 @@
 {
   "outputs": [
 <<<<<<< HEAD:attic/dsp_config.json
+<<<<<<< HEAD:attic/dsp_config.json
     "timestamp", "channel", "trapEmax", "trapEftp", "triE", "bl_mean", "bl_sig", "A_10", "AoE", "dcr", "zacE", "cuspE"
 =======
     "timestamp", "channel", "energy", "trapEmax", "trapEftp", "triE", "bl", "bl_sig", "A_10", "AoE", "dcr", "zacE", "cuspE", "power_spect", "curr_psd", "curr", "hf_max", "curr_psd_sum", "curr_psd_sum10", "wf_norm", "wf_blsub", "bl_slope", "tp_0", "tp_50"
 >>>>>>> Modified processors.py and dsp_config.json:pygama/io/dsp_config.json
+=======
+    "timestamp", "channel", "energy", "trapEmax", "trapEftp", "triE", "bl", "bl_sig", "A_10", "AoE", "dcr", "zacE", "cuspE", "power_spect", "curr_psd", "curr", "hf_max", "curr_psd_sum", "curr_psd_sum10", "wf_norm", "wf_blsub", "bl_slope", "tp_0", "tp_50", "waveform"
+>>>>>>> Fixed calibration function. Added processors to .json config file:pygama/io/dsp_config.json
   ],
   "processors":{
     "bl_mean , bl_sig, bl_slope, bl_intercept":{
@@ -53,7 +57,12 @@
     "wf_trap": {
       "function": "trap_norm",
       "module": "pygama.dsp.processors",
+<<<<<<< HEAD:attic/dsp_config.json
       "args": ["wf_pz", "10*us", "5*us", "wf_trap"],
+=======
+      "args": ["wf_pz", "10*us", "2.5*us", "wf_trap"],
+      "prereqs": ["wf_pz"],
+>>>>>>> Fixed calibration function. Added processors to .json config file:pygama/io/dsp_config.json
       "unit": "ADC"
     },
     "wf_triangle": {

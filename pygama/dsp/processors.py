@@ -46,4 +46,8 @@ from ._processors.linear_slope_fit import linear_slope_fit
 from ._processors.log_check import log_check
 from ._processors.min_max import min_max
 from ._processors.presum import presum
+<<<<<<< HEAD
 >>>>>>> Add files via upload
+=======
+from ._processors.integral import sum_wf
+>>>>>>> Modified analysis files

@@ -78,7 +78,8 @@ def get_most_prominent_peaks(energySeries, xlo, xhi, xpb,
     hist = hist - hist_med
 
     # identify peaks with a scipy function (could be improved ...)
-    peak_idxs = find_peaks_cwt(hist, np.arange(5, 10, 0.1), min_snr=5) #changed range from (0,6,0.1)
+    peak_idxs = find_peaks_cwt(hist, np.arange(1, 10, 0.1), min_snr=5) #changed range from (5,10,0.1)
+    peak_idxs = arr = peak_idxs.astype('int32') #was having trouble with int64 dtype
     peak_energies = bin_centers[peak_idxs]
 
     # pick the num_peaks most prominent peaks
@@ -169,7 +170,7 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
     if len(energy_series) < 100:
         return 1, 0
 
-    #get 10 most prominent ~high e peaks
+    #get most prominent ~high e peaks
     max_adc = np.amax(energy_series)
     energy_hi = energy_series[(energy_series > np.percentile(energy_series, 20)) & \
                               (energy_series < np.percentile(energy_series, 99.9))] #uncommented range
@@ -242,7 +243,7 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
             plt.ion()
             plt.figure(figsize=(12, 6))
             plt.subplot(121)
-            plt.plot(bin_centers, peak_hist, color="k", ls="steps")
+            plt.plot(bin_centers, peak_hist, color="k", ls="-")
             plt.subplot(122)
             plt.hist(e_cal_rough, bins=2700, histtype="step")
             input("-->press any key to continue...")

@@ -138,14 +138,16 @@ setup(
     install_requires=[
         'numpy',
         'scimath',
-        'numba<=0.52.0',
+        'numba<=0.52.0', # need to update to 0.55 when it comes out
         'parse',
         'GitPython',
         'tinydb',
         'pyFFTW',
-        'h5py',
+        'h5py>=3.2.0',
         'pandas',
-        'matplotlib'
+        'matplotlib',
+        'iminuit',
+        'tqdm'
         # 'fcutils @ https://github.com/legend-exp/pyfcutils.git#egg=1.0.0'
     ],
     cmdclass=dict(build_ext=CMakeBuild, build_py=PygamaBuild, develop=PygamaDev),

@@ -228,6 +228,16 @@ def gauss_mode_width_max(hist, bins, var=None, mode_guess=None, n_bins=5, poisso
     n_bins : int
         The number of bins (including the max bin) to be used in the fit. Also
         used for searching for a max near mode_guess
+<<<<<<< HEAD
+=======
+    poissonLL : bool (optional)
+        Flag passed to fit_hist()
+    inflate_errors : bool (optional)
+        If true, the parameter uncertainties are inflated by sqrt(chi2red)
+        if it is greater than 1
+    gof_method : str (optional)
+        method flag for goodness_of_fit
+>>>>>>> modified analysis files
     Returns
     -------
     (pars, cov) : tuple (array, matrix)
@@ -312,6 +322,16 @@ def taylor_mode_max(hist, bins, var=None, mode_guess=None, n_bins=5, poissonLL=F
     (maximum, mode) : tuple (float, float)
         maximum : the estimated maximum value of the peak
         mode : the estimated x-position of the maximum
+<<<<<<< HEAD
+=======
+    (pars, cov) : tuple (array, matrix)
+        pars : 2-tuple with the parameters (mode, max) of the fit
+            mode : the estimated x-position of the maximum
+            maximum : the estimated maximum value of the peak
+        cov : 2x2 matrix of floats
+            The covariance matrix for the 2 parameters in pars
+
+>>>>>>> modified analysis files
     Examples
     --------
     >>> import pygama.analysis.histograms as pgh
@@ -576,6 +596,7 @@ def cal_slope(x, m1, m2):
     Fit the calibration values
     """
 <<<<<<< HEAD
+<<<<<<< HEAD
     return np.sqrt(m1 +(m2/(x**2)))
 
 
@@ -589,3 +610,19 @@ def cal_slope(x, m1, m2):
 =======
     return np.sqrt(m1 +(m2/(x**2)))
 >>>>>>> Add files via upload
+=======
+    return np.sqrt(m1 +(m2/(x**2)))
+
+
+def poly(x, pars):
+    """
+    A polynomial function with pars following the polyfit convention
+    """
+    result = x*0 # do x*0 to keep shape of x (scalar or array)
+    if len(pars) == 0: return result
+    result += pars[-1]
+    for i in range(1, len(pars)):
+        result += pars[-i-1]*x
+        x = x*x
+    return result
+>>>>>>> modified analysis files

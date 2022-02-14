@@ -47,7 +47,19 @@ from ._processors.log_check import log_check
 from ._processors.min_max import min_max
 from ._processors.presum import presum
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> Add files via upload
 =======
 from ._processors.integral import sum_wf
 >>>>>>> Modified analysis files
+=======
+from ._processors.integral import sum_wf
+from ._processors.windower import windower
+from ._processors.bl_subtract import bl_subtract
+from ._processors.convolutions import cusp_filter, zac_filter, t0_filter
+from ._processors.trap_filters import trap_filter, trap_norm, asym_trap_filter, trap_pickoff
+from ._processors.moving_windows import moving_window_left, moving_window_right, moving_window_multi, avg_current
+from ._processors.soft_pileup_corr import soft_pileup_corr, soft_pileup_corr_bl
+from ._processors.optimize import optimize_1pz, optimize_2pz
+from ._processors.saturation import saturation
+>>>>>>> modified analysis files

@@ -10,6 +10,13 @@ import sys
 import numpy as np
 from pygama.analysis.peak_fitting import *
 from pygama.analysis.histograms import get_bin_centers, get_gaussian_guess
+<<<<<<< HEAD
+=======
+import pygama.utils as pgu
+import pygama.analysis.peak_fitting as pgp
+import pygama.analysis.histograms as pgh
+import pygama.analysis.peak_fitting as pgf
+>>>>>>> modified analysis files
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
 from scipy.signal import argrelextrema, medfilt, find_peaks_cwt
@@ -20,6 +27,483 @@ import scipy.optimize as op
 
 def peakdet(v, delta, x):
     """
+<<<<<<< HEAD
+=======
+    pars = []
+    covs = []
+    binws = []
+    ranges = []
+
+    for i_peak in range(len(mode_guesses)):
+        # get args for this peak
+        wwidth_i = wwidths if not isinstance(wwidths, list) else wwidths[i_peak]
+        n_bins_i = n_bins if np.isscalar(n_bins) else n_bins[i_peak]
+        func_i = funcs[i_peak] if hasattr(funcs, '__len__') else funcs
+        wleft_i = wwidth_i/2 if np.isscalar(wwidth_i) else wwidth_i[0]
+        wright_i = wwidth_i/2 if np.isscalar(wwidth_i) else wwidth_i[1]
+        getbounds_i = getbounds if np.isscalar(getbounds) else getbounds[1]
+
+        # bin a histogram
+        Euc_min = mode_guesses[i_peak] - wleft_i
+        Euc_max = mode_guesses[i_peak] + wright_i
+        Euc_min, Euc_max, n_bins_i = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, n_bins=n_bins_i)
+        hist, bins, var = pgh.get_hist(E_uncal, bins=n_bins_i, range=(Euc_min,Euc_max))
+
+        # get parameters guesses
+        par_guesses = get_hpge_E_peak_par_guess(hist, bins, var, func_i)
+        if getbounds_i:
+            bounds = get_hpge_E_peak_bounds(hist, bins, var, func_i, par_guesses)
+        else:
+            bounds = None
+
+        try:
+            pars_i, cov_i = pgp.fit_hist(func_i, hist, bins, var=var, guess=par_guesses, bounds=bounds)
+
+            if sum([sum(c) if c is not None else 0 for c in cov_i]) == np.inf or sum([sum(c) if c is not None else 0 for c in cov_i]) == 0 or (np.sqrt(np.diagonal(cov_i))/pars_i < 1e-7).any():
+                print(f'hpge_fit_E_peaks: cov estimation failed for i_peak={i_peak} at loc {mode_guesses[i_peak]:g}')
+                pars_i, cov_i = None, None
+
+        except: pars_i, cov_i = None, None
+
+        #get binning
+        binw_1 = (bins[-1]-bins[0])/(len(bins)-1)
+
+        pars.append(pars_i)
+        covs.append(cov_i)
+        binws.append(binw_1)
+        ranges.append([Euc_min, Euc_max])
+
+    return np.array(pars, dtype = object), np.array(covs, dtype = object), np.array(binws), np.array(ranges)
+
+
+def hpge_fit_E_scale(mus, mu_vars, Es_keV, deg=0):
+    """ Find best fit of poly(E) = mus +/- sqrt(mu_vars)
+
+    Compare to hpge_fit_E_cal_func which fits for E = poly(mu)
+
+    Parameters
+    ----------
+    mus : array
+        uncalibrated energies
+    mu_vars : array
+        variances in the mus
+    Es_keV : array
+        energies to fit to, in keV
+    deg : int
+        degree for energy scale fit. deg=0 corresponds to a simple scaling
+        mu = scale * E. Otherwise deg follows the definition in np.polyfit
+
+    Returns
+    -------
+    pars : array
+        parameters of the best fit. Follows the convention in np.polyfit
+    cov : 2D array
+        covariance matrix for the best fit parameters.
+    """
+    if deg == 0:
+        scale, scale_cov = pgu.fit_simple_scaling(Es_keV, mus, var=mu_vars)
+        pars = np.array([scale, 0])
+        cov = np.array([[scale_cov, 0], [0, 0]])
+    else:
+        pars, cov = np.polyfit(Es_keV, mus, deg=deg, w=1/np.sqrt(mu_vars), cov=True)
+    return pars, cov
+
+
+def hpge_fit_E_cal_func(mus, mu_vars, Es_keV, E_scale_pars, deg=0):
+    """ Find best fit of E = poly(mus +/- sqrt(mu_vars))
+
+    This is an inversion of hpge_fit_E_scale.
+    E uncertainties are computed from mu_vars / dmu/dE where mu = poly(E) is the
+    E_scale function
+
+    Parameters
+    ----------
+    mus : array
+        uncalibrated energies
+    mu_vars : array
+        variances in the mus
+    Es_keV : array
+        energies to fit to, in keV
+    k
+        hpge_fit_E_scale)
+    deg : int
+        degree for energy scale fit. deg=0 corresponds to a simple scaling
+        mu = scale * E. Otherwise deg follows the definition in np.polyfit
+
+    Returns
+    -------
+    pars : array
+        parameters of the best fit. Follows the convention in np.polyfit
+    cov : 2D array
+        covariance matrix for the best fit parameters.
+    """
+    if deg == 0:
+        E_vars = mu_vars/E_scale_pars[0]**2
+        scale, scale_cov = pgu.fit_simple_scaling(mus, Es_keV, var=E_vars)
+        pars = np.array([scale, 0])
+        cov = np.array([[scale_cov, 0], [0, 0]])
+    else:
+        mu_ns = np.ones(len(mus))
+        dmudEs = np.zeros(len(mus))
+        for n in range(len(E_scale_pars)-1):
+            dmudEs += mu_ns*E_scale_pars[-n-1]
+            mu_ns *= mus
+        E_weights = dmudEs/np.sqrt(mu_vars)
+        pars, cov = np.polyfit(mus, Es_keV, deg=deg, w=E_weights, cov=True)
+    return pars, cov
+
+
+def hpge_E_calibration(E_uncal, peaks_keV, guess_keV, deg=0, uncal_is_int=False, range_keV=None, funcs=pgp.gauss_step, verbose=True):
+    """ Calibrate HPGe data to a set of known peaks
+
+    Parameters
+    ----------
+    E_uncal : array
+        unbinned energy data to be calibrated
+    peaks_keV : array
+        list of peak energies to be fit to. Each must be in the data
+    guess_keV : float
+        a rough initial guess at the conversion factor from E_uncal to keV. Must
+        be positive
+    deg : non-negative int
+        degree of the polynomial for the E_cal function E_keV = poly(E_uncal).
+        deg = 0 corresponds to a simple scaling E_keV = scale * E_uncal.
+        Otherwise follows the convention in np.polyfit
+    uncal_is_int : bool
+        if True, attempts will be made to avoid picket-fencing when binning
+        E_uncal
+    range_keV : float, tuple, array of floats, or array of tuples of floats
+        ranges around which the peak fitting is performed
+        if tuple(s) are supplied, they provide the left and right ranges
+
+    Returns
+    -------
+    pars, cov : array, 2D array
+        array of calibration function parameters and their covariances. The form
+        of the function is E_keV = poly(E_uncal). Assumes poly() is
+        overwhelmingly dominated by the linear term. pars follows convention in
+        np.polyfit unless deg=0, in which case it is the (lone) scale factor
+    results : dict with the following elements
+        'detected_peaks_locs', 'detected_peaks_keV' : array, array
+            array of rough uncalibrated/calibrated energies at which the fit peaks were
+            found in the initial peak search
+        'pt_pars', 'pt_cov' : list of (array), list of (2D array)
+            arrays of gaussian parameters / covariances fit to the peak tops in
+            the first refinement
+        'pt_cal_pars', 'pt_cal_cov' : array, 2D array
+            array of calibraiton parameters E_uncal = poly(E_keV) for fit to
+            means of gausses fit to tops of each peak
+        'pk_pars', 'pk_cov', 'pk_binws', 'pk_ranges' : list of (array), list of (2D array), list, list of (array)
+            the best fit parameters, covariances, bin width and energy range for the local fit to each peak
+        'pk_cal_pars', 'pk_cal_cov' : array, 2D array
+            array of calibraiton parameters E_uncal = poly(E_keV) for fit to
+            means from full peak fits
+        'fwhms', 'dfwhms' : array, array
+            the numeric fwhms and their uncertainties for each peak.
+    """
+    results = {}
+
+    # sanity checks
+    E_uncal = np.asarray(E_uncal)
+    peaks_keV = np.asarray(peaks_keV) #peaks_keV = np.sort(peaks_keV)
+    deg = int(deg)
+    if guess_keV <= 0:
+        print(f'hpge_E_cal warning: invalid guess_keV = {guess_keV}')
+        return None, None, results
+    if deg < 0:
+        print(f'hpge_E_cal warning: invalid deg = {deg}')
+        return None, None, results
+
+    # bin the histogram in ~1 keV bins for the initial rough peak search
+    Euc_min = peaks_keV[0]/guess_keV * 0.6
+    Euc_max = peaks_keV[-1]/guess_keV * 1.1
+    dEuc = 1/guess_keV
+    if uncal_is_int:
+        Euc_min, Euc_max, dEuc = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, dx=dEuc)
+    hist, bins, var = pgh.get_hist(E_uncal, range=(Euc_min, Euc_max), dx=dEuc)
+
+    # Run the initial rough peak search
+    detected_peaks_locs, detected_peaks_keV, roughpars = hpge_find_E_peaks(hist, bins, var, peaks_keV, n_sigma=5, deg=deg)
+    if verbose:
+        print(f"{len(detected_peaks_locs)} peaks found:")
+        print(f'\t   Energy   | Position  ')
+        for i, (Li, Ei) in enumerate(zip(detected_peaks_locs, detected_peaks_keV)):
+            print(f'\t{i}'.ljust(4) + str(Ei).ljust(9) + f'| {Li:g}'.ljust(5))
+
+    # re-bin the histogram in ~0.2 keV bins with updated E scale par for peak-top fits
+    Euc_min, Euc_max = [(np.poly1d(roughpars)-i).roots for i in (peaks_keV[0]*.9, peaks_keV[-1]*1.1)]
+    Euc_min = Euc_min[np.logical_and(Euc_min >= 0, Euc_min <= max(Euc_max))][0]
+    Euc_max = Euc_max[np.logical_and(Euc_max >= Euc_min, Euc_max <= max(E_uncal))][0]
+    dEuc = 0.2/roughpars[-2]
+
+    if uncal_is_int:
+        Euc_min, Euc_max, dEuc = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, dx=dEuc)
+    hist, bins, var = pgh.get_hist(E_uncal, range=(Euc_min, Euc_max), dx=dEuc)
+
+    #run peak getter after rebinning
+    got_peaks_locs, got_peaks_keV, roughpars = hpge_get_E_peaks(hist, bins, var, roughpars, peaks_keV, n_sigma=3)
+    results['got_peaks_locs'] = got_peaks_locs
+    results['got_peaks_keV'] = got_peaks_keV
+    if verbose:
+        print(f"{len(got_peaks_locs)} peaks obtained:")
+        print(f'\t   Energy   | Position  ')
+        for i, (Li, Ei) in enumerate(zip(got_peaks_locs, got_peaks_keV)):
+            print(f'\t{i}'.ljust(4) + str(Ei).ljust(9) + f'| {Li:g}'.ljust(5))
+    # Drop non-gotten peaks
+    idx = [i for i, E in enumerate(peaks_keV) if E in got_peaks_keV]
+    range_keV = [range_keV[i] for i in idx]
+    funcs = [funcs[i] for i in idx]
+
+    # Drop peaks to not be fitted
+    tmp = zip(*[a for a in zip(got_peaks_locs, got_peaks_keV, range_keV, funcs) if a[2] and a[3]])
+    got_peaks_locs, got_peaks_keV, range_keV, funcs = list(map(list, tmp))
+    got_peaks_locs = np.asarray(got_peaks_locs)
+    got_peaks_keV = np.asarray(got_peaks_keV)
+
+    # Now do a series of full fits to the peak shapes
+
+    # First calculate range around peaks to fit
+    if range_keV is None:
+        #Need to do initial fit
+        pt_pars, pt_covs = hpge_fit_E_peak_tops(hist, bins, var, got_peaks_locs, n_to_fit=7)
+        # Drop failed fits
+        fitidx = [i is not None for i in pt_pars]
+        results['got_peaks_locs'] = got_peaks_locs = got_peaks_locs[fitidx]
+        results['got_peaks_keV'] = got_peaks_keV = got_peaks_keV[fitidx]
+        pt_pars = np.asarray(pt_pars)[fitidx]
+        pt_covs = np.asarray(pt_covs)[fitidx]
+        range_uncal = np.stack(pt_pars)[:,1].astype(float)*20
+        n_bins = 50
+    elif np.isscalar(range_keV):
+        derco = np.polyder(np.poly1d(roughpars)).coefficients
+        der = [pgf.poly(Ei, derco) for Ei in got_peaks_keV]
+        range_uncal = [float(range_keV) / d for d in der]
+        n_bins = [range_keV/0.5 /d for d in der]
+    elif isinstance(range_keV, tuple):
+        rangeleft_keV, rangeright_keV = range_keV
+        derco = np.polyder(np.poly1d(roughpars)).coefficients
+        der = [pgf.poly(Ei, derco) for Ei in got_peaks_keV]
+        range_uncal = [(rangeleft_keV/d, rangeright_keV/d) for d in der]
+        n_bins = [sum(range_keV)/0.5 /d for d in der]
+    elif isinstance(range_keV, list):
+        derco = np.polyder(np.poly1d(roughpars)).coefficients
+        der = [pgf.poly(Ei, derco) for Ei in got_peaks_keV]
+        range_uncal = [(r[0]/d, r[1]/d) if isinstance(r, tuple) else r/d for r, d in zip(range_keV, der)]
+        n_bins = [sum(r)/0.5/d if isinstance(r, tuple) else r/0.2/d for r, d in zip(range_keV, der)]
+
+    pk_pars, pk_covs, pk_binws, pk_ranges = hpge_fit_E_peaks(E_uncal, got_peaks_locs, range_uncal, n_bins=n_bins,
+                                        funcs=funcs, uncal_is_int=uncal_is_int)
+    results['pk_pars'] = pk_pars
+    results['pk_covs'] = pk_covs
+    results['pk_binws'] = pk_binws
+    results['pk_ranges'] = pk_ranges
+
+    # Drop failed fits
+    fitidx = [i is not None for i in pk_pars]
+    fitted_peaks_keV = results['fitted_keV'] = got_peaks_keV[fitidx]
+    funcs = [f for i, f in zip(fitidx, funcs) if i]
+    pk_pars = results['pk_pars'] = np.asarray(pk_pars, dtype=object)[fitidx] #ragged
+    pk_covs = results['pk_covs'] = np.asarray(pk_covs, dtype=object)[fitidx]
+    pk_binws = results['pk_binws'] = np.asarray(pk_binws)[fitidx]
+    pk_ranges = results['pk_ranges'] = np.asarray(pk_ranges)[fitidx]
+    if verbose:
+        print(f"{sum(fitidx)} peaks fitted:")
+        for i, (Ei, parsi, covsi) in enumerate(zip(fitted_peaks_keV, pk_pars, pk_covs)):
+            func_i = funcs[i] if hasattr(funcs, '__len__') else funcs
+            varnames = func_i.__code__.co_varnames[1:len(pk_pars[-1])+1]
+            parsi = np.asarray(parsi, dtype=float)
+            covsi = np.asarray(covsi, dtype=float)
+            parsigsi = np.sqrt(covsi.diagonal())
+            print(f'\tEnergy: {str(Ei)}')
+            print(f'\t\tParameter  |    Value +/- Sigma  ')
+            for (vari, pari, parsigi) in zip(varnames, parsi, parsigsi):
+                print(f'\t\t{str(vari).ljust(10)} | {("%4.2f" % pari).rjust(8)} +/- {("%4.2f" % parsigi).ljust(8)}')
+                #fwhm??
+
+    # Do a second calibration to the results of the full peak fits
+    mus = [pgf.get_mu_func(func_i, pars_i, covs_i) for func_i, pars_i, covs_i in zip(funcs, pk_pars, pk_covs)]
+    mus, mu_vars = zip(*mus)
+    mus = np.asarray(mus)
+    mu_vars = np.asarray(mu_vars)**2
+
+    pars, cov = hpge_fit_E_scale(mus, mu_vars, fitted_peaks_keV, deg=deg)
+    results['pk_cal_pars'] = pars
+    results['pk_cal_cov'] = cov
+
+    # Invert the E scale fit to get a calibration function
+    pars, cov = hpge_fit_E_cal_func(mus, mu_vars, fitted_peaks_keV, pars, deg=deg)
+
+    # Finally, calculate fwhms in keV
+    uncal_fwhms = [pgf.get_fwhm_func(func_i, pars_i, covs_i) for func_i, pars_i, covs_i in zip(funcs, pk_pars, pk_covs)]
+    uncal_fwhms, uncal_fwhm_errs = zip(*uncal_fwhms)
+    uncal_fwhms = np.asarray(uncal_fwhms)
+    uncal_fwhm_errs = np.asarray(uncal_fwhm_errs)
+    derco = np.polyder(np.poly1d(pars)).coefficients
+    der = [pgf.poly(Ei, derco) for Ei in fitted_peaks_keV]
+    results['pk_fwhms'] = np.asarray([(u*d, e*d) for u, e, d in zip(uncal_fwhms, uncal_fwhm_errs, der)])
+
+    return pars, cov, results
+
+
+
+def poly_match(xx, yy, deg=-1, rtol=1e-5, atol=1e-8):
+    """
+    Find the polynomial function best matching pol(xx) = yy
+
+    Finds the poly fit of xx to yy that obtains the most matches between pol(xx)
+    and yy in the np.isclose() sense. If multiple fits give the same number of
+    matches, the fit with the best gof is used, where gof is computed only among
+    the matches.
+
+    Assumes that the relationship between xx and yy is monotonic
+
+    Parameters
+    ----------
+    xx : array-like
+        domain data array. Must be sorted from least to largest. Must satisfy
+        len(xx) >= len(yy)
+    yy : array-like
+        range data array: the values to which pol(xx) will be compared. Must be
+        sorted from least to largest. Must satisfy len(yy) > max(2, deg+2)
+    deg : int
+        degree of the polynomial to be used. If deg = 0, will fit for a simple
+        scaling: scale * xx = yy. If deg = -1, fits to a simple shift in the
+        data: xx + shift = yy. Otherwise, deg is equivalent to the deg argument
+        of np.polyfit()
+    rtol : float
+        the relative tolerance to be sent to np.isclose()
+    atol : float
+        the absolute tolerance to be sent to np.isclose(). Has the same units
+        as yy.
+
+    Returns
+    -------
+    pars: None or array of floats
+        The parameters of the best fit of poly(xx) = yy.  Follows the convention
+        used for the return value "p" of polyfit. Returns None when the inputs
+        are bad.
+    i_matches : list of int
+        list of indices in xx for the matched values in the best match
+    """
+
+    # input handling
+    xx = np.asarray(xx)
+    yy = np.asarray(yy)
+#    if len(xx) <= len(yy):
+#        print(f"poly_match error: len(xx)={len(xx)} <= len(yy)={len(yy)}")
+#        return None, 0
+    deg = int(deg)
+    if deg < -1:
+        print(f"poly_match error: got bad deg = {deg}")
+        return None, 0
+    req_ylen = max(2, deg+2)
+    if len(yy) < req_ylen:
+        print(f"poly_match error: len(yy) must be at least {req_ylen} for deg={deg}, got {len(yy)}")
+        return None, 0
+
+    maxoverlap = min(len(xx), len(yy))
+
+    # build ixtup: the indices in xx to compare with the values in yy
+    ixtup = np.array(list(range(maxoverlap)))
+    iytup = np.array(list(range(maxoverlap)))
+    best_ixtup = None
+    best_iytup = None
+    n_close = 0
+    gof = np.inf # lower is better gof
+    while True:
+        xx_i = xx[ixtup]
+        yy_i = yy[iytup]
+        gof_i = np.inf
+
+        # simple shift
+        if deg == -1:
+            pars_i = np.array([1, (np.sum(yy_i) - np.sum(xx_i)) / len(yy_i)])
+            polxx = xx_i + pars_i[1]
+
+
+        # simple scaling
+        elif deg == 0:
+            pars_i = np.array([np.sum(yy_i*xx_i) / np.sum(xx_i*xx_i), 0])
+            polxx = pars_i[0] * xx_i
+
+
+        # generic poly of degree >= 1
+        else:
+            pars_i = np.polyfit(xx_i, yy_i, deg)
+            polxx = np.zeros(len(yy_i))
+            xxn = np.ones(len(yy_i))
+            polxx = pgf.poly(xx_i, pars_i)
+
+        # by here we have the best polxx. Search for matches and store pars_i if
+        # its the best so far
+        matches = np.isclose(polxx, yy_i, rtol=rtol, atol=atol)
+        n_close_i = np.sum(matches)
+        if n_close_i >= n_close:
+            gof_i = np.sum(np.power(polxx[matches] - yy_i[matches], 2))
+            if n_close_i > n_close or (n_close_i == n_close and gof_i < gof):
+                n_close = n_close_i
+                gof = gof_i
+                pars = pars_i
+                best_ixtup = np.copy(ixtup)
+                best_iytup = np.copy(iytup)
+
+        # increment ixtup
+        # first find the index of ixtup that needs to be incremented
+        ii = 0
+        while ii < len(ixtup)-1:
+            if ixtup[ii] < ixtup[ii+1]-1: break
+            ii += 1
+
+        # quit if ii is the last index of ixtup and it's already maxed out
+        if not( ii == len(ixtup) - 1 and ixtup[ii] == len(xx)-1 ):
+
+            # otherwise increment ii and reset indices < ii
+            ixtup[ii] += 1
+            ixtup[0:ii] = list(range(ii))
+            continue
+
+        # increment iytup
+        # first find the index of iytup that needs to be incremented
+        ii = 0
+        while ii < len(iytup)-1:
+            if iytup[ii] < iytup[ii+1]-1: break
+            ii += 1
+
+        # quit if ii is the last index of iytup and it's already maxed out
+        if not( ii == len(iytup) - 1 and iytup[ii] == len(yy)-1 ):
+
+            # otherwise increment ii and reset indices < ii
+            iytup[ii] += 1
+            iytup[0:ii] = list(range(ii))
+            ixtup = np.array(list(range(len(iytup)))) #(reset ix)
+            continue
+
+        if n_close == len(iytup): #found best
+            break
+
+        #reduce overlap
+        new_len = len(iytup) - 1
+        if new_len < req_ylen:
+            break
+        ixtup = np.array(list(range(new_len)))
+        iytup = np.array(list(range(new_len)))
+
+        best_ixtup = None
+        best_iytup = None
+        n_close = 0
+        gof = np.inf
+
+    return pars, best_ixtup, best_iytup
+
+
+def get_i_local_extrema(data, delta):
+    """
+    Get lists of indices of the local maxima and minima of data
+
+    The "local" extrema are those maxima / minima that have heights / depths of
+    at least delta.
+
+>>>>>>> modified analysis files
     Converted from MATLAB script at: http://billauer.co.il/peakdet.html
     Returns two arrays: [maxtab, mintab] = peakdet(v, delta, x)
     An updated (vectorized) version is in pygama.dsp.transforms.peakdet
@@ -93,8 +577,8 @@ def get_most_prominent_peaks(energySeries, xlo, xhi, xpb,
         plt.plot(bin_centers, hist, ds='steps', lw=1, c='b')
         for e in peak_energies:
             plt.axvline(e, color="r", lw=1, alpha=0.6)
-        plt.xlabel("Energy [ADC]", ha='right', x=1)
-        plt.ylabel("Filtered Spectrum", ha='right', y=1)
+        plt.xlabel("Energy (ADC)", fontsize=24)
+        plt.ylabel("Filtered Spectrum", fontsize=24)
         plt.tight_layout()
         plt.show()
         #exit()
@@ -129,7 +613,7 @@ def match_peaks(data_pks, cal_pks, plotFigure=None):
             if err < best_err:
                 best_err, best_m, best_b = err, m, b
 
-    print(i, best_err)
+    print("iteration = ",i, "best_error = ",best_err)
     print("cal:",cal)
     print("data:",data)
     
@@ -138,11 +622,10 @@ def match_peaks(data_pks, cal_pks, plotFigure=None):
         plt.scatter(data, cal, label='min.err:{:.2e}'.format(best_err))
         xs = np.linspace(data[0], data[-1], 10)
         plt.plot(xs, best_m * xs + best_b , c="r",
-             label="y = {:.2f} x + {:.2f}".format(best_m,best_b) )
-        plt.xlabel("Energy [ADC]", ha='right', x=1)
-        plt.ylabel("Energy (keV)", ha='right', y=1)
-        plt.legend()
-        plt.tight_layout()
+             label="y = {:.2f} x + {:.2f}".format(best_m,best_b))
+        plt.xlabel("Energy (ADC)", fontsize=24)
+        plt.ylabel("Energy (keV)", fontsize=24)
+        plt.legend(fontsize=24)
         plt.show()
     #exit()
 
@@ -329,8 +812,14 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
         ax_spec.semilogy(get_bin_centers(bins), peak_hist, ds="steps-mid")
         for pk in cal_peaks:
             ax_spec.axvline(pk, 0, 1e5, color='r')
+<<<<<<< HEAD
         ax_spec.set_xlabel("Energy [keV]")
         ax_spec.set_ylabel("Counts")
+=======
+            ax_spec.semilogy(pgh.get_bin_centers(bins), peak_hist, ls="steps-mid")
+            ax_spec.set_xlabel("Energy [keV]")
+            ax_spec.set_ylabel("Counts")
+>>>>>>> modified analysis files
 
     return linear_cal
 

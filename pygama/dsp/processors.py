@@ -18,9 +18,7 @@ from ._processors.linear_slope_fit import linear_slope_fit
 from ._processors.log_check import log_check
 from ._processors.min_max import min_max
 from ._processors.presum import presum
-<<<<<<< HEAD
 from ._processors.integral import sum_wf
-=======
 from ._processors.windower import windower
 from ._processors.bl_subtract import bl_subtract
 from ._processors.convolutions import cusp_filter, zac_filter, t0_filter
@@ -29,4 +27,3 @@ from ._processors.moving_windows import moving_window_left, moving_window_right,
 from ._processors.soft_pileup_corr import soft_pileup_corr, soft_pileup_corr_bl
 from ._processors.optimize import optimize_1pz, optimize_2pz
 from ._processors.saturation import saturation
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10

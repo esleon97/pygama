@@ -239,8 +239,6 @@ def gauss_mode_width_max(hist, bins, var=None, mode_guess=None, n_bins=5,
     n_bins : int (optional)
         The number of bins (including the max bin) to be used in the fit. Also
         used for searching for a max near mode_guess
-<<<<<<< HEAD
-=======
     poissonLL : bool (optional)
         Flag passed to fit_hist()
     inflate_errors : bool (optional)
@@ -248,8 +246,6 @@ def gauss_mode_width_max(hist, bins, var=None, mode_guess=None, n_bins=5,
         if it is greater than 1
     gof_method : str (optional)
         method flag for goodness_of_fit
-
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10
     Returns
     -------
     (pars, cov) : tuple (array, matrix)
@@ -338,11 +334,9 @@ def taylor_mode_max(hist, bins, var=None, mode_guess=None, n_bins=5, poissonLL=F
         used for searching for a max near mode_guess
     Returns
     -------
-<<<<<<< HEAD
     (maximum, mode) : tuple (float, float)
         maximum : the estimated maximum value of the peak
         mode : the estimated x-position of the maximum
-=======
     (pars, cov) : tuple (array, matrix)
         pars : 2-tuple with the parameters (mode, max) of the fit
             mode : the estimated x-position of the maximum
@@ -350,7 +344,6 @@ def taylor_mode_max(hist, bins, var=None, mode_guess=None, n_bins=5, poissonLL=F
         cov : 2x2 matrix of floats
             The covariance matrix for the 2 parameters in pars
 
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10
     Examples
     --------
     >>> import pygama.analysis.histograms as pgh
@@ -735,9 +728,6 @@ def cal_slope(x, m1, m2):
     """
     Fit the calibration values
     """
-<<<<<<< HEAD
-    return np.sqrt(m1 +(m2/(x**2)))
-=======
     return np.sqrt(m1 +(m2/(x**2)))
 
 
@@ -752,4 +742,3 @@ def poly(x, pars):
         result += pars[-i-1]*x
         x = x*x
     return result
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10

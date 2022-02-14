@@ -283,11 +283,8 @@ class ORCAGretina4M(OrcaDecoder):
             if len(dec_vals_list) == 0:
                 print("ORGretina4MModel: Error: decoded_values not built yet!")
                 return None
-<<<<<<< HEAD
             return dec_vals_list[0][1]
-=======
             return list(dec_vals_list)[0][1] # Get first thing we find
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10
         if channel in self.decoded_values: return self.decoded_values[channel]
         print("ORGretina4MModel: Error: No decoded values for channel", channel)
         return None

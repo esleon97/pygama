@@ -8,15 +8,12 @@ routines for automatic calibration.
 """
 import sys
 import numpy as np
-<<<<<<< HEAD
 from pygama.analysis.peak_fitting import *
 from pygama.analysis.histograms import get_bin_centers, get_gaussian_guess
-=======
 import pygama.utils as pgu
 import pygama.analysis.peak_fitting as pgp
 import pygama.analysis.histograms as pgh
 import pygama.analysis.peak_fitting as pgf
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
 from scipy.signal import medfilt, find_peaks_cwt
@@ -622,7 +619,6 @@ def hpge_E_calibration(E_uncal, peaks_keV, guess_keV, deg=0, uncal_is_int=False,
         print(f'\t   Energy   | Position  ')
         for i, (Li, Ei) in enumerate(zip(got_peaks_locs, got_peaks_keV)):
             print(f'\t{i}'.ljust(4) + str(Ei).ljust(9) + f'| {Li:g}'.ljust(5))
-
     # Drop non-gotten peaks
     idx = [i for i, E in enumerate(peaks_keV) if E in got_peaks_keV]
     range_keV = [range_keV[i] for i in idx]
@@ -969,8 +965,8 @@ def get_most_prominent_peaks(energySeries, xlo, xhi, xpb,
         plt.plot(bin_centers, hist, ds='steps', lw=1, c='b')
         for e in peak_energies:
             plt.axvline(e, color="r", lw=1, alpha=0.6)
-        plt.xlabel("Energy [ADC]", ha='right', x=1)
-        plt.ylabel("Filtered Spectrum", ha='right', y=1)
+        plt.xlabel("Energy (ADC)", fontsize=24)
+        plt.ylabel("Filtered Spectrum", fontsize=24)
         plt.tight_layout()
         plt.show()
         #exit()
@@ -1005,7 +1001,7 @@ def match_peaks(data_pks, cal_pks, plotFigure=None):
             if err < best_err:
                 best_err, best_m, best_b = err, m, b
 
-    print(i, best_err)
+    print("iteration = ",i, "best_error = ",best_err)
     print("cal:",cal)
     print("data:",data)
     
@@ -1014,11 +1010,10 @@ def match_peaks(data_pks, cal_pks, plotFigure=None):
         plt.scatter(data, cal, label='min.err:{:.2e}'.format(best_err))
         xs = np.linspace(data[0], data[-1], 10)
         plt.plot(xs, best_m * xs + best_b , c="r",
-             label="y = {:.2f} x + {:.2f}".format(best_m,best_b) )
-        plt.xlabel("Energy [ADC]", ha='right', x=1)
-        plt.ylabel("Energy (keV)", ha='right', y=1)
-        plt.legend()
-        plt.tight_layout()
+             label="y = {:.2f} x + {:.2f}".format(best_m,best_b))
+        plt.xlabel("Energy (ADC)", fontsize=24)
+        plt.ylabel("Energy (keV)", fontsize=24)
+        plt.legend(fontsize=24)
         plt.show()
     #exit()
 
@@ -1202,15 +1197,12 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
         ax_spec = plt.subplot()
         energies_cal = energy_series * linear_cal[0] + linear_cal[1]
         peak_hist, bins = np.histogram(energies_cal, bins=np.arange(0, 2700))
-<<<<<<< HEAD
         ax_spec.semilogy(get_bin_centers(bins), peak_hist, ds="steps-mid")
         for pk in cal_peaks:
             ax_spec.axvline(pk, 0, 1e5, color='r')
-=======
-        ax_spec.semilogy(pgh.get_bin_centers(bins), peak_hist, ls="steps-mid")
->>>>>>> 928172afc13f16e5c55e9058b73b3fc82c09bf10
-        ax_spec.set_xlabel("Energy [keV]")
-        ax_spec.set_ylabel("Counts")
+            ax_spec.semilogy(pgh.get_bin_centers(bins), peak_hist, ls="steps-mid")
+            ax_spec.set_xlabel("Energy [keV]")
+            ax_spec.set_ylabel("Counts")
 
     return linear_cal
 

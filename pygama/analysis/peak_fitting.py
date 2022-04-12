@@ -472,8 +472,9 @@ def radford_fwhm(sigma, htail, tau, cov = None):
     upper_hm = brentq( radford_peak_bgfree_halfmax,
                        Emax, 2.5*sigma/2,
                        args = (sigma, htail, tau, half_max) )
+    fwhm = upper_hm - lower_hm
     
-    if cov is None: return upper_hm - lower_hm
+    if cov is None: return 
 
     #calculate uncertainty
     #amp set to 1, mu to 0, hstep+bg set to 0
@@ -490,7 +491,7 @@ def radford_fwhm(sigma, htail, tau, cov = None):
 
     fwfm_unc = np.sqrt(np.dot(grad2, np.dot(cov, grad2)))
 
-    return upper_hm - lower_hm, fwfm_unc
+    return fwhm, fwfm_unc
 
 
 def radford_peakshape_derivative(E, pars):

@@ -12,6 +12,7 @@ this is done, memory will be allocated for this array, slowing things down.
 from ._processors.pole_zero import pole_zero, double_pole_zero
 from ._processors.fixed_time_pickoff import fixed_time_pickoff
 from ._processors.time_point_thresh import time_point_thresh
+from ._processors.time_point_frac import time_point_frac
 from ._processors.param_lookup import param_lookup
 from ._processors.fftw import dft, inv_dft, psd
 from ._processors.linear_slope_fit import linear_slope_fit

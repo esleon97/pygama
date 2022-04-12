@@ -23,8 +23,12 @@ from ._processors.trap_norm import trap_norm
 from ._processors.trap_pickoff import trap_pickoff
 from ._processors.time_point_frac import time_point_frac
 from ._processors.time_point_thresh import time_point_thresh
+<<<<<<< HEAD
 from ._processors.linear_fit import linear_fit
 from ._processors.zac_filter import zac_filter
+=======
+from ._processors.time_point_frac import time_point_frac
+>>>>>>> Update remote
 from ._processors.param_lookup import param_lookup
 from ._processors.cusp_filter import cusp_filter
 from ._processors.fftw import dft, inv_dft, psd

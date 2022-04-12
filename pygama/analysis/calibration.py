@@ -46,8 +46,8 @@ def peakdet(v, delta, x):
         # bin a histogram
         Euc_min = mode_guesses[i_peak] - wleft_i
         Euc_max = mode_guesses[i_peak] + wright_i
-        Euc_min, Euc_max, n_bins_i = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, n_bins=n_bins_i)
-        hist, bins, var = pgh.get_hist(E_uncal, bins=n_bins_i, range=(Euc_min,Euc_max))
+        # Euc_min, Euc_max, n_bins_i = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, n_bins=n_bins_i) commented to get input number of bins
+        hist, bins, var = pgh.get_hist(E_uncal, bins=n_bins, range=(Euc_min,Euc_max))
 
         # get parameters guesses
         par_guesses = get_hpge_E_peak_par_guess(hist, bins, var, func_i)
@@ -619,7 +619,7 @@ def match_peaks(data_pks, cal_pks, plotFigure=None):
     
     if plotFigure is not None:
         
-        plt.scatter(data, cal, label='min.err:{:.2e}'.format(best_err))
+        plt.scatter(data, cal, label=f'min.err = {best_err:.2f}', c="k")
         xs = np.linspace(data[0], data[-1], 10)
         plt.plot(xs, best_m * xs + best_b , c="r",
              label="y = {:.2f} x + {:.2f}".format(best_m,best_b))

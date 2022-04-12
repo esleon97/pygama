@@ -447,7 +447,156 @@ def radford_peak(x, mu, sigma, hstep, htail, tau, bg0, a=1, components=False):
         return (1 - htail), gauss(x, mu, sigma, a), bg_term, step, le_tail
 
 
+<<<<<<< HEAD
 def gauss_tail(x,mu, sigma, tail,tau):
+=======
+    return radford_peak(x, mu, sigma, hstep, htail, tau, bkg, a, components=components)
+
+
+def radford_fwhm(sigma, htail, tau, cov = None):
+    """
+    Return the FWHM of the radford_peak function, ignoring background and
+    step components. TODO: also get the uncertainty
+    """
+    # optimize this to find max value
+    def neg_radford_peak_bgfree(E, sigma, htail, tau):
+        return -radford_peak(E, 0, sigma, 0, htail, tau, 0, 1)
+    
+    res = minimize_scalar( neg_radford_peak_bgfree,
+                           args=(sigma, htail, tau),
+                           bounds=(-sigma-htail, sigma+htail) )
+    Emax = res.x
+    half_max = -neg_radford_peak_bgfree(Emax, sigma, htail, tau)/2.
+
+    # root find this to find the half-max energies
+    def radford_peak_bgfree_halfmax(E, sigma, htail, tau, half_max):
+        return radford_peak(E, 0, sigma, 0, htail, tau, 0, 1) - half_max
+    
+    lower_hm = brentq( radford_peak_bgfree_halfmax,
+                       -(2.5*sigma/2 + htail*tau), Emax,
+                       args = (sigma, htail, tau, half_max) )
+    upper_hm = brentq( radford_peak_bgfree_halfmax,
+                       Emax, 2.5*sigma/2,
+                       args = (sigma, htail, tau, half_max) )
+    fwhm = upper_hm - lower_hm
+    
+    if cov is None: return 
+
+    #calculate uncertainty
+    #amp set to 1, mu to 0, hstep+bg set to 0
+    pars = [0, sigma, 0, htail, tau, 0, 1]
+    gradmax = radford_parameter_gradient(Emax, pars);
+    gradmax *= 0.5
+    grad1 = radford_parameter_gradient(lower_hm, pars);
+    grad1 -= gradmax
+    grad1 /= radford_peakshape_derivative(lower_hm, pars);
+    grad2 = radford_parameter_gradient(upper_hm, pars);
+    grad2 -= gradmax
+    grad2 /= radford_peakshape_derivative(upper_hm, pars);
+    grad2 -= grad1;
+
+    fwfm_unc = np.sqrt(np.dot(grad2, np.dot(cov, grad2)))
+
+    return fwhm, fwfm_unc
+
+
+def radford_peakshape_derivative(E, pars):
+    mu, sigma, hstep, htail, tau, bg0, a = pars
+
+    sigma = abs(sigma)
+    gaus = gauss(E, mu, sigma)
+    y = (E-mu)/sigma
+    ret = -(1-htail)*y/sigma*gaus
+    ret -= htail/tau*(-gauss_tail(E, mu, sigma, 1, tau)+gaus)
+
+    return a*(ret - hstep*gaus)
+
+
+def radford_parameter_gradient(E, pars):
+    mu, sigma, hstep, htail, tau, bg0, amp = pars #bk gradient zero?
+
+    gaus = gauss(E, mu, sigma)
+    tailL = gauss_tail(E, mu, sigma, 1, tau)
+    step_f = step(E, mu, sigma, 0, 1)
+
+    #some unitless numbers that show up a bunch
+    y = (E-mu)/sigma
+    sigtauL = sigma/tau
+
+    g_amp = htail*tailL + (1-htail)*gaus + hstep*step_f
+    g_hs = amp*step_f
+    g_ft = amp*(tailL-gaus)
+
+    #gradient of gaussian part
+    g_mu = (1-htail)*y/sigma*gaus
+    g_sigma = (1-htail)*(y*y-1)/sigma*gaus
+
+    #gradient of low tail, use approximation if necessary
+    g_mu += htail/tau*(-tailL+gaus)
+    g_sigma += htail/tau*(sigtauL*tailL-(sigtauL-y)*gaus)
+    g_tau = -htail/tau*( (1.+sigtauL*y+sigtauL*sigtauL)*tailL - sigtauL*sigtauL*gaus) * amp
+
+    g_mu = amp*(g_mu + hstep*gaus)
+    g_sigma = amp*(g_sigma + hstep*y*gaus)
+
+    gradient = g_mu, g_sigma, g_hs, g_ft, g_tau, 0, g_amp
+    return np.array(gradient)
+
+
+def get_fwhm_func(func, pars, cov = None):
+
+    if func == gauss_step:
+        amp, mu, sigma, bkg, step = pars
+        if cov is None:
+            return sigma*2*np.sqrt(2*np.log(2))
+        else:
+            return sigma*2*np.sqrt(2*np.log(2)), np.sqrt(cov[2][2])*2*np.sqrt(2*np.log(2))
+
+    if func == radford_peak:
+        mu, sigma, hstep, htail, tau, bg0, a = pars
+        return radford_fwhm(sigma, htail, tau, cov)
+
+    if func == radford_peak_wrapped:
+        A, mu, sigma, bg0, S, T, tau = pars
+        a = A + T
+        htail = T / a
+        hstep = S / a
+        newpars = mu, sigma, hstep, htail, tau, bg0, a
+        return get_fwhm_func(radford_peak, newpars) #couldn't work out how to transform covariance matrix, use simple radford_peak for uncertainty
+    else:
+        print(f'get_fwhm_func not implemented for {func.__name__}')
+        return None
+
+
+def get_mu_func(func, pars, cov = None):
+
+    if func == gauss_step:
+        amp, mu, sigma, bkg, step = pars
+        if cov is None:
+            return mu
+        else:
+            return mu, np.sqrt(cov[2][2])
+
+    if func == radford_peak:
+        mu, sigma, hstep, htail, tau, bg0, a = pars
+        if cov is None:
+            return mu
+        else:
+            return mu, np.sqrt(cov[0][0])
+
+    if func == radford_peak_wrapped:
+        A, mu, sigma, bg0, S, T, tau = pars
+        if cov is None:
+            return mu
+        else:
+            return mu, np.sqrt(cov[1][1])
+    else:
+        print(f'get_fwhm_func not implemented for {func.__name__}')
+        return None
+    
+
+def gauss_tail(x, mu, sigma, tail, tau):
+>>>>>>> Update remote
     """
     A gaussian tail function template
     Can be used as a component of other fit functions

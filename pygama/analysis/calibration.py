@@ -416,8 +416,8 @@ def hpge_fit_E_peaks(E_uncal, mode_guesses, wwidths, n_bins=50, funcs=pgp.gauss_
         # bin a histogram
         Euc_min = mode_guesses[i_peak] - wleft_i
         Euc_max = mode_guesses[i_peak] + wright_i
-        # Euc_min, Euc_max, n_bins_i = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, n_bins=n_bins_i) commented to get input number of bins
-        hist, bins, var = pgh.get_hist(E_uncal, bins=n_bins, range=(Euc_min,Euc_max))
+        # Euc_min, Euc_max, n_bins_i = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, n_bins=n_bins_i)#commented because fit was not converging
+        hist, bins, var = pgh.get_hist(E_uncal, bins=n_bins_i, range=(Euc_min,Euc_max))
 
         # get parameters guesses
         par_guesses = get_hpge_E_peak_par_guess(hist, bins, var, func_i)
@@ -660,9 +660,13 @@ def hpge_E_calibration(E_uncal, peaks_keV, guess_keV, deg=0, uncal_is_int=False,
         der = [pgf.poly(Ei, derco) for Ei in got_peaks_keV]
         range_uncal = [(r[0]/d, r[1]/d) if isinstance(r, tuple) else r/d for r, d in zip(range_keV, der)]
         n_bins = [sum(r)/0.5/d if isinstance(r, tuple) else r/0.2/d for r, d in zip(range_keV, der)]
-
-    pk_pars, pk_covs, pk_binws, pk_ranges = hpge_fit_E_peaks(E_uncal, got_peaks_locs, range_uncal, n_bins=n_bins,
-                                        funcs=funcs, uncal_is_int=uncal_is_int)
+    
+    pk_pars, pk_covs, pk_binws, pk_ranges = hpge_fit_E_peaks(E_uncal, 
+                                                             got_peaks_locs, 
+                                                             range_uncal,
+                                                             n_bins=n_bins, 
+                                                             funcs=funcs,
+                                                             uncal_is_int=uncal_is_int)
     results['pk_pars'] = pk_pars
     results['pk_covs'] = pk_covs
     results['pk_binws'] = pk_binws

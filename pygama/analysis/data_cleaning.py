@@ -9,7 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
 from scipy import stats
-from .peak_fitting import *
+from pygama.analysis.peak_fitting import *
+from pygama.analysis.histograms import get_gaussian_guess
 
 
 def gaussian_cut(data, cut_sigma=3, plotAxis=None):
@@ -39,10 +40,12 @@ def gaussian_cut(data, cut_sigma=3, plotAxis=None):
     # print("binned: {}".format(result))
     cut_lo = result[0] - cut_sigma * result[1]
     cut_hi = result[0] + cut_sigma * result[1]
+    
+    print('cut_lo = ', cut_lo, 'cut_hi = ', cut_hi)
 
     if plotAxis is not None:
         plotAxis.plot(
-            bin_centers, hist, ls="steps-mid", color="k", label="data")
+            bin_centers, hist, ds="steps-mid", color="k", label="data")
         fit = gauss(bin_centers, *result)
         plotAxis.plot(bin_centers, fit, label="gaussian fit")
         plotAxis.axvline(result[0], color="g", label="fit mean")
@@ -74,7 +77,7 @@ def xtalball_cut(data, cut_sigma=3, plotFigure=None):
     #fit gaussians to that
     # result = fit_unbinned(gauss, hist, [median, width/2] )
     # print("unbinned: {}".format(result))
-    p0 = get_gaussian_guess(hist, bin_centers)
+    p0 = get_gaussian_guess(hist, bins)
     bounds = [(p0[0] * .5, p0[1] * .5, p0[2] * .2, 0, 1),
               (p0[0] * 1.5, p0[1] * 1.5, p0[2] * 5, np.inf, np.inf)]
     result = fit_binned(
@@ -85,10 +88,11 @@ def xtalball_cut(data, cut_sigma=3, plotFigure=None):
     # print("binned: {}".format(result))
     cut_lo = result[0] - cut_sigma * result[1]
     cut_hi = result[0] + cut_sigma * result[1]
+    
+    print('cut_lo = ', cut_lo, 'cut_hi = ', cut_hi)
 
     if plotFigure is not None:
-        plt.figure(plotFigure.number)
-        plt.plot(bin_centers, hist, ls="steps-mid", color="k", label="data")
+        plt.plot(bin_centers, hist, ds="steps-mid", color="k", label="data")
         fit = xtalball(bin_centers, *result)
         plt.plot(bin_centers, fit, label="xtalball fit")
         plt.axvline(result[0], color="g", label="fit mean")

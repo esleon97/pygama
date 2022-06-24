@@ -43,7 +43,7 @@ def run_one_dsp(tb_data, dsp_config, db_dict=None, fom_function=None, verbosity=
     
     pc, lh5_col_names, tb_out = build_processing_chain(tb_data, dsp_config, db_dict=db_dict, verbosity=verbosity)
     pc.execute()
-    if fom_function is not None: 
+    if fom_function is not None:
         if fom_kwargs is not None:
             return fom_function(tb_out, verbosity, fom_kwargs)
         else: 

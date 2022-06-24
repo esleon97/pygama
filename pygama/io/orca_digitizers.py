@@ -1,4 +1,4 @@
-import sys
+import sys, copy
 import numpy as np
 
 from .orcadaq import OrcaDecoder, get_ccc

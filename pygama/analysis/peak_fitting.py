@@ -840,10 +840,6 @@ def radford_fwhm(sigma, htail, tau,  cov = None):
         upper_hm = brentq( radford_peak_bgfree_halfmax,
                        Emax, 2.5*sigma/2,
                        args = (sigma, htail, tau, half_max) )
-    fwhm = upper_hm - lower_hm
-    
-    if cov is None: return 
-
     except:
         upper_hm = brentq( radford_peak_bgfree_halfmax,
                    Emax, 5*sigma,

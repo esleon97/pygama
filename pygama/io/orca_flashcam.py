@@ -1,5 +1,5 @@
 import numpy as np
-
+import copy
 from .orcadaq import OrcaDecoder, get_ccc, get_readout_info, get_auxhw_info
 from .fcdaq import FlashCamEventDecoder
 

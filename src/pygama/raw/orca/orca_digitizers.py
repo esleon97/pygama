@@ -1,5 +1,9 @@
+<<<<<<< HEAD:src/pygama/raw/orca/orca_digitizers.py
 import sys
 
+=======
+import sys, copy
+>>>>>>> Added dwt processor:pygama/io/orca_digitizers.py
 import numpy as np
 
 from pygama.lgdo import Table

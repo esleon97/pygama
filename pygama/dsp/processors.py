@@ -66,4 +66,14 @@ from ._processors.moving_windows import moving_window_left, moving_window_right,
 from ._processors.soft_pileup_corr import soft_pileup_corr, soft_pileup_corr_bl
 from ._processors.optimize import optimize_1pz, optimize_2pz
 from ._processors.saturation import saturation
+<<<<<<< HEAD
 >>>>>>> modified analysis files
+=======
+from ._processors.gaussian_filter1d import gaussian_filter1d
+from ._processors.get_multi_local_extrema import get_multi_local_extrema
+from ._processors.multi_t_filter import multi_t_filter, remove_duplicates
+from ._processors.multi_a_filter import multi_a_filter
+from ._processors.Wiener_filter import Wiener_filter
+from ._processors.pulse_injector import inject_sig_pulse,inject_exp_pulse
+from ._processors.dwt import dwt 
+>>>>>>> Added dwt processor

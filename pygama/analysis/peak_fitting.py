@@ -478,10 +478,20 @@ def radford_fwhm(sigma, htail, tau, cov = None):
     upper_hm = brentq( radford_peak_bgfree_halfmax,
                        Emax, 2.5*sigma/2,
                        args = (sigma, htail, tau, half_max) )
+<<<<<<< HEAD
     fwhm = upper_hm - lower_hm
     
     if cov is None: return 
 
+=======
+    except:
+        upper_hm = brentq( radford_peak_bgfree_halfmax,
+                   Emax, 5*sigma,
+                   args = (sigma, htail, tau, half_max) )
+    
+    if cov is None: return upper_hm - lower_hm
+    
+>>>>>>> Added dwt processor
     #calculate uncertainty
     #amp set to 1, mu to 0, hstep+bg set to 0
     pars = [0, sigma, 0, htail, tau, 0, 1]

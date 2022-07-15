@@ -2,6 +2,7 @@ import sys, os
 import numpy as np
 import h5py
 import fnmatch
+import logging
 from collections import defaultdict
 from bisect import bisect_left
 
@@ -14,6 +15,8 @@ from .fixedsizearray import FixedSizeArray
 from .arrayofequalsizedarrays import ArrayOfEqualSizedArrays
 from .vectorofvectors import VectorOfVectors
 
+log = logging.getLogger(__name__)
+
 class Store:
     def __init__(self, base_path='', keep_open=False):
         self.base_path = base_path
@@ -21,7 +24,7 @@ class Store:
         self.files = {}
 
 
-    def gimme_file(self, lh5_file, mode):
+    def gimme_file(self, lh5_file, mode, verbosity=None):
         if isinstance(lh5_file, h5py.File): return lh5_file
         if lh5_file in self.files.keys(): return self.files[lh5_file]
         if self.base_path != '': full_path = self.base_path + '/' + lh5_file
@@ -38,7 +41,7 @@ class Store:
         return h5f
 
 
-    def gimme_group(self, group, base_group, grp_attrs=None):
+    def gimme_group(self, group, base_group, grp_attrs=None, verbosity=None):
         if isinstance(group, h5py.Group): return group
         if group in base_group: return base_group[group]
         group = base_group.create_group(group)
@@ -491,105 +494,138 @@ class Store:
         return None
 
 
-    def write_object(self, obj, name, lh5_file, group='/', start_row=0, n_rows=None, append=True):
+    def write_object(self, obj, name, lh5_file, group='/', start_row=0, n_rows=None,
+                     wo_mode='append', write_start=0, verbosity=0):
         """Write an object into an lh5_file
-
-        obj should be a LH5 object. 
-
-        Set append to true for non-scalar objects if you want to append along
-        axis 0 (the first dimension) (or axis 0 of non-scalar subfields of
-        structs)
+        obj should be a LH5 object. if object is array-like, writes n_rows
+        starting from start_row in obj.
+        wo_modes:
+          - 'write_safe' or 'w': only proceed with writing if the object does
+            not already exist in the file
+          - 'append' or 'a': append along axis 0 (the first dimension) of
+            array-like objects and array-like subfields of structs. Scalar
+            objects get overwritten
+          - 'overwrite' or 'o': replace data in the file if present, starting
+            from write_start. Note: overwriting with write_start = end of
+            array is the same as append
+          - 'overwrite_file' or 'of': delete file if present prior to writing to
+            it. write_start should be 0 (it's ignored)
         """
-        lh5_file = self.gimme_file(lh5_file, mode = 'a' if append else 'r+')
-        group = self.gimme_group(group, lh5_file)
+        if wo_mode == 'write_safe':  wo_mode = 'w'
+        if wo_mode == 'append':  wo_mode = 'a'
+        if wo_mode == 'overwrite': wo_mode = 'o'
+        if wo_mode == 'overwrite_file':
+            wo_mode = 'of'
+            write_start = 0
+        if wo_mode != 'w' and wo_mode != 'a' and wo_mode != 'o' and wo_mode != 'of':
+            print(f'Unknown wo_mode {wo_mode}')
+            return
 
-        # FIXME: fail if trying to overwrite an existing object without appending?
-        # FIXME: even in append mode, if you try to overwrite a ds, it will fail
-        # unless you delete the ds first
+        # "mode" is for the h5df.File and wo_mode is for this function
+        # In hdf5, 'a' is really "modify" -- in addition to appending, you can
+        # change any object in the file. So we use file:append for
+        # write_object:overwrite.
+        mode = 'w' if wo_mode == 'of' else 'a'
+        lh5_file = self.gimme_file(lh5_file, mode=mode, verbosity=verbosity)
+        group = self.gimme_group(group, lh5_file, verbosity=verbosity)
+        if wo_mode == 'w' and name in group:
+            print(f"can't overwrite {name} in wo_mode write_safe")
+            return
 
-        # struct or table
+        # struct or table or waveform table
         if isinstance(obj, Struct):
-            group = self.gimme_group(name, group, grp_attrs=obj.attrs)
+            group = self.gimme_group(name, group, grp_attrs=obj.attrs, overwrite=(wo_mode=='o'), verbosity=verbosity)
             fields = obj.keys()
             for field in obj.keys():
-                self.write_object(obj[field], 
-                                  field, 
-                                  lh5_file, 
-                                  group, 
+                self.write_object(obj[field],
+                                  field,
+                                  lh5_file,
+                                  group=group,
                                   start_row=start_row,
                                   n_rows=n_rows,
-                                  append=append)
+                                  wo_mode=wo_mode,
+                                  write_start=write_start,
+                                  verbosity=verbosity)
             return
 
         # scalars
         elif isinstance(obj, Scalar):
+            if verbosity > 0 and name in group:
+                print('overwriting {name} in {group}')
             ds = group.create_dataset(name, shape=(), data=obj.value)
             ds.attrs.update(obj.attrs)
             return
 
- 
         # vector of vectors
         elif isinstance(obj, VectorOfVectors):
-            group = self.gimme_group(name, group, grp_attrs=obj.attrs)
+            group = self.gimme_group(name, group, grp_attrs=obj.attrs, overwrite=(wo_mode=='o'), verbosity=verbosity)
             if n_rows is None or n_rows > obj.cumulative_length.nda.shape[0] - start_row:
                 n_rows = obj.cumulative_length.nda.shape[0] - start_row
 
             # if appending we need to add an appropriate offset to the
             # cumulative lengths as appropriate for the in-file object
-            offset = 0
-            if append and 'cumulative_length' in group:
-                len_cl = len(group['cumulative_length']) 
-                if len_cl > 0: offset = group['cumulative_length'][len_cl-1]
-            # Add offset to obj.cumulative_length itself to avoid memory allocation. 
+            offset = 0 # declare here because we have to subtract it off at the end
+            if (wo_mode == 'a' or wo_mode == 'o') and 'cumulative_length' in group:
+                len_cl = len(group['cumulative_length'])
+                if wo_mode == 'a': write_start = len_cl
+                if len_cl > 0: offset = group['cumulative_length'][write_start-1]
+            # Add offset to obj.cumulative_length itself to avoid memory allocation.
             # Then subtract it off after writing!
             obj.cumulative_length.nda += offset
             self.write_object(obj.cumulative_length,
-                              'cumulative_length', 
-                              lh5_file, 
-                              group, 
+                              'cumulative_length',
+                              lh5_file,
+                              group=group,
                               start_row=start_row,
                               n_rows=n_rows,
-                              append=append)
+                              wo_mode=wo_mode,
+                              write_start=write_start,
+                              verbosity=verbosity)
             obj.cumulative_length.nda -= offset
 
             # now write data array. Only write rows with data.
             da_start = 0 if start_row == 0 else obj.cumulative_length.nda[start_row-1]
             da_n_rows = obj.cumulative_length.nda[n_rows-1] - da_start
             self.write_object(obj.flattened_data,
-                              'flattened_data', 
-                              lh5_file, 
-                              group, 
+                              'flattened_data',
+                              lh5_file,
+                              group=group,
                               start_row=da_start,
                               n_rows=da_n_rows,
-                              append=append)
+                              wo_mode=wo_mode,
+                              write_start=offset,
+                              verbosity=verbosity)
             return
 
         # if we get this far, must be one of the Array types
-        elif isinstance(obj, Array): 
+        elif isinstance(obj, Array):
             if n_rows is None or n_rows > obj.nda.shape[0] - start_row:
                 n_rows = obj.nda.shape[0] - start_row
             nda = obj.nda[start_row:start_row+n_rows]
+            # hack to store bools as uint8 for c / Julia compliance
             if nda.dtype.name == 'bool': nda = nda.astype(np.uint8)
             # need to create dataset from ndarray the first time for speed
             # creating an empty dataset and appending to that is super slow!
-            if not append or name not in group:
-                maxshape = list(nda.shape)
-                maxshape[0] = None
-                maxshape = tuple(maxshape)
+            if (wo_mode != 'a' and write_start == 0) or name not in group:
+                maxshape = (None,) + nda.shape[1:]
+                if wo_mode == 'o' and name in group:
+                    log.info(f'overwriting {name} in {group}')
+                    del group[name]
                 ds = group.create_dataset(name, data=nda, maxshape=maxshape)
                 ds.attrs.update(obj.attrs)
                 return
-            
-            # Now append
+
+            # Now append or overwrite
             ds = group[name]
             old_len = ds.shape[0]
-            add_len = nda.shape[0]
+            if wo_mode == 'a': write_start = old_len
+            add_len = write_start + nda.shape[0] - old_len
             ds.resize(old_len + add_len, axis=0)
-            ds[-add_len:] = nda
+            ds[write_start:] = nda
             return
 
         else:
-            print('Store: do not know how to write', name, 'of type', type(obj).__name__)
+            print('LH5Store: do not know how to write', name, 'of type', type(obj).__name__)
             return
 
 

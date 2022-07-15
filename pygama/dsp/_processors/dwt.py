@@ -7,20 +7,22 @@ def dwt(level, wavelet):
     Apply a discrete wavelet transform to the waveform and return only 
     the approximate coefficients. Note that it is composed of a
     factory function that is called using the init_args argument and that
-    the function the waveforms are passed to using args.
+    the function the waveforms are passed to using args. Need to specify
+    dimension of output waveform for the Processing Chain.
 
     Initialization Parameters
     -------------------------
     level   : int
-              The length of the filter to be convolved
+              The length of the filter to be convolved (1, 2, ...)
+              Output waveform will be downsampled by a factor of 2^{level}
     wavelet : float
-              The wavelet type for convolution ('haar', 'db', ...)
+              The wavelet type for convolution ('haar', 'mexh', ...)
 
     Parameters
     ----------
-    w_in : array-like
+    wf_in : array-like
            The input waveform
-    w_out: array-like
+    wf_out: array-like
            The approximate coefficients 
 
     Processing Chain Example
@@ -28,11 +30,11 @@ def dwt(level, wavelet):
     "dwt":{
         "function": "dwt",
         "module": "pygama.dsp.processors",
-        "args": ["wf_blsub", "dwt"],
+        "args": ["wf_blsub", "dwt(250,f)"],
         "unit": "ADC",
         "prereqs": ["wf_blsub"],
-        "init_args": ["3", "haar"]
-        }
+        "init_args": ["3", "'haar'"]
+    }
     """
         
     @guvectorize(["void(float32[:], float32[:])",
@@ -41,7 +43,7 @@ def dwt(level, wavelet):
     def dwt_out(wf_in, wf_out):
         
         wf_out[:] = np.nan
-        coeffs = wavedec(wf_in, wavelet, level=level) #always rounds up number of samples 
+        coeffs = wavedec(wf_in, wavelet, level=level) 
         wf_out[:] = coeffs[0][:]
         
     return dwt_out

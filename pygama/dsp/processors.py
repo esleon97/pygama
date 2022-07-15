@@ -69,7 +69,7 @@ from ._processors.linear_slope_fit import linear_slope_fit
 from ._processors.log_check import log_check
 from ._processors.min_max import min_max
 from ._processors.presum import presum
-from ._processors.integral import sum_wf
+from ._processors.integral import rectangle, simpson
 from ._processors.windower import windower
 from ._processors.bl_subtract import bl_subtract
 from ._processors.convolutions import cusp_filter, zac_filter, t0_filter

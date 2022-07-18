@@ -3,14 +3,9 @@ from numba import guvectorize
 
 from pygama.dsp.errors import DSPFatal
 
-<<<<<<< HEAD:src/pygama/dsp/_processors/time_point_thresh.py
 
-@guvectorize(["void(float32[:], float32, float32, float32, float32[:])",
-              "void(float64[:], float64, float64, float64, float64[:])"],
-=======
 @guvectorize(["void(float32[:], float32, int32, int32, int32[:])",
               "void(float64[:], float64, int64, int64, int64[:])"],
->>>>>>> Added dwt and integral processors:pygama/dsp/_processors/time_point_thresh.py
              "(n),(),(),()->()", nopython=True, cache=True)
 def time_point_thresh(w_in, a_threshold, t_start, walk_forward, t_out):
     """

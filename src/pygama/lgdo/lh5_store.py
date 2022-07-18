@@ -1,13 +1,9 @@
 import fnmatch
-<<<<<<< HEAD:src/pygama/lgdo/lh5_store.py
 import glob
 import logging
 import os
 import sys
 from bisect import bisect_left, bisect_right
-=======
-import logging
->>>>>>> Added dwt and integral processors:pygama/lh5/store.py
 from collections import defaultdict
 
 import h5py
@@ -31,13 +27,7 @@ class LH5Store:
     """
     DOCME
     """
-
-<<<<<<< HEAD:src/pygama/lgdo/lh5_store.py
-=======
-log = logging.getLogger(__name__)
-
-class Store:
->>>>>>> Added dwt and integral processors:pygama/lh5/store.py
+    
     def __init__(self, base_path='', keep_open=False):
         """
         Parameters
@@ -53,7 +43,7 @@ class Store:
         self.files = {}
 
 
-<<<<<<< HEAD:src/pygama/lgdo/lh5_store.py
+
     def gimme_file(self, lh5_file, mode='r', verbosity=0):
         """
         Returns a h5py file object from the store or creates a new one
@@ -71,9 +61,7 @@ class Store:
         -------
         file_obj : h5py.File
         """
-=======
-    def gimme_file(self, lh5_file, mode, verbosity=None):
->>>>>>> Added dwt and integral processors:pygama/lh5/store.py
+
         if isinstance(lh5_file, h5py.File): return lh5_file
         if lh5_file in self.files.keys(): return self.files[lh5_file]
         if self.base_path != '': full_path = self.base_path + '/' + lh5_file
@@ -92,19 +80,10 @@ class Store:
         return h5f
 
 
-<<<<<<< HEAD:src/pygama/lgdo/lh5_store.py
     def gimme_group(self, group, base_group, grp_attrs=None, overwrite=False, verbosity=0):
         """
         Returns an existing h5py group from a base group or creates a new one.
         Can also set (or replace) group attributes
-=======
-    def gimme_group(self, group, base_group, grp_attrs=None, verbosity=None):
-        if isinstance(group, h5py.Group): return group
-        if group in base_group: return base_group[group]
-        group = base_group.create_group(group)
-        if grp_attrs is not None: group.attrs.update(grp_attrs)
-        return group
->>>>>>> Added dwt and integral processors:pygama/lh5/store.py
 
         Parameters
         ----------
@@ -555,7 +534,13 @@ class Store:
     def write_object(self, obj, name, lh5_file, group='/', start_row=0, n_rows=None,
                      wo_mode='append', write_start=0, verbosity=0):
         """Write an object into an lh5_file
+<<<<<<< HEAD
 <<<<<<< HEAD:src/pygama/lgdo/lh5_store.py
+=======
+        obj should be a LH5 object. if object is array-like, writes n_rows
+        starting from start_row in obj.
+        wo_modes:
+>>>>>>> 1de68b2b1ce7c13beb1ad9704b6ce571729b87e8
 
         obj should be a LH5 object. if object is array-like, writes n_rows
         starting from start_row in obj.
@@ -577,10 +562,13 @@ class Store:
             array is the same as append
           - 'overwrite_file' or 'of': delete file if present prior to writing to
             it. write_start should be 0 (it's ignored)
+<<<<<<< HEAD
 <<<<<<< HEAD:src/pygama/lgdo/lh5_store.py
 
 =======
 >>>>>>> Added dwt and integral processors:pygama/lh5/store.py
+=======
+>>>>>>> 1de68b2b1ce7c13beb1ad9704b6ce571729b87e8
         """
         if wo_mode == 'write_safe':  wo_mode = 'w'
         if wo_mode == 'append':  wo_mode = 'a'

@@ -18,6 +18,7 @@ from pygama.analysis.histograms import get_gaussian_guess
 >>>>>>> Modified data cleaning:pygama/analysis/data_cleaning.py
 
 
+
 def gaussian_cut(data, cut_sigma=3, plotAxis=None):
     '''
     fits data to a gaussian, returns mean +/- cut_sigma values for a cut

@@ -382,6 +382,18 @@ def hpge_fit_E_peaks(E_uncal, mode_guesses, wwidths, n_bins=50, funcs=pgf.gauss_
         func_i = funcs[i_peak] if hasattr(funcs, '__len__') else funcs
         wleft_i = wwidth_i/2 if np.isscalar(wwidth_i) else wwidth_i[0]
         wright_i = wwidth_i/2 if np.isscalar(wwidth_i) else wwidth_i[1]
+        getbounds_i = getbounds if np.isscalar(getbounds) else getbounds[1]
+
+        # bin a histogram
+        Euc_min = mode_guesses[i_peak] - wleft_i
+        Euc_max = mode_guesses[i_peak] + wright_i
+        # Euc_min, Euc_max, n_bins_i = pgh.better_int_binning(x_lo=Euc_min, x_hi=Euc_max, n_bins=n_bins_i)#commented because fit was not converging
+        hist, bins, var = pgh.get_hist(E_uncal, bins=n_bins_i, range=(Euc_min,Euc_max))
+
+        # get parameters guesses
+        par_guesses = get_hpge_E_peak_par_guess(hist, bins, var, func_i)
+        if getbounds_i:
+            bounds = get_hpge_E_peak_bounds(hist, bins, var, func_i, par_guesses)
         if gof_funcs is not None:
             gof_func_i = gof_funcs[i_peak] if hasattr(gof_funcs, '__len__') else gof_funcs
         else:
@@ -649,7 +661,6 @@ def hpge_E_calibration(E_uncal, peaks_keV, guess_keV, deg=0, uncal_is_int=False,
         print(f'\t   Energy   | Position  ')
         for i, (Li, Ei) in enumerate(zip(got_peaks_locs, got_peaks_keV)):
             print(f'\t{i}'.ljust(4) + str(Ei).ljust(9) + f'| {Li:g}'.ljust(5))
-
     # Drop non-gotten peaks
     idx = [i for i, E in enumerate(peaks_keV) if E in got_peaks_keV]
     range_keV = [range_keV[i] for i in idx]
@@ -691,6 +702,13 @@ def hpge_E_calibration(E_uncal, peaks_keV, guess_keV, deg=0, uncal_is_int=False,
         der = [pgf.poly(Ei, derco) for Ei in got_peaks_keV]
         range_uncal = [(r[0]/d, r[1]/d) if isinstance(r, tuple) else r/d for r, d in zip(range_keV, der)]
         n_bins = [sum(r)/0.5/d if isinstance(r, tuple) else r/0.2/d for r, d in zip(range_keV, der)]
+    
+    pk_pars, pk_covs, pk_binws, pk_ranges = hpge_fit_E_peaks(E_uncal, 
+                                                             got_peaks_locs, 
+                                                             range_uncal,
+                                                             n_bins=n_bins, 
+                                                             funcs=funcs,
+                                                             uncal_is_int=uncal_is_int)
 
     pk_pars,pk_errors, pk_covs, pk_binws, pk_ranges, pk_pvals = hpge_fit_E_peaks(E_uncal, got_peaks_locs, range_uncal,
                                     n_bins=n_bins,
@@ -996,7 +1014,8 @@ def get_most_prominent_peaks(energySeries, xlo, xhi, xpb,
     hist = hist - hist_med
 
     # identify peaks with a scipy function (could be improved ...)
-    peak_idxs = find_peaks_cwt(hist, np.arange(1, 6, 0.1), min_snr=5)
+    peak_idxs = find_peaks_cwt(hist, np.arange(1, 10, 0.1), min_snr=5) #changed range from (5,10,0.1)
+    peak_idxs = arr = peak_idxs.astype('int32') #was having trouble with int64 dtype
     peak_energies = bin_centers[peak_idxs]
 
     # pick the num_peaks most prominent peaks
@@ -1007,19 +1026,19 @@ def get_most_prominent_peaks(energySeries, xlo, xhi, xpb,
         peak_energies = np.sort(bin_centers[peak_idxs_max])
 
     if test:
-        plt.plot(bin_centers, hist, ls='steps', lw=1, c='b')
+        plt.plot(bin_centers, hist, ds='steps', lw=1, c='b')
         for e in peak_energies:
             plt.axvline(e, color="r", lw=1, alpha=0.6)
-        plt.xlabel("Energy [uncal]", ha='right', x=1)
-        plt.ylabel("Filtered Spectrum", ha='right', y=1)
+        plt.xlabel("Energy (ADC)", fontsize=24)
+        plt.ylabel("Filtered Spectrum", fontsize=24)
         plt.tight_layout()
         plt.show()
-        exit()
+        #exit()
 
     return peak_energies
 
 
-def match_peaks(data_pks, cal_pks):
+def match_peaks(data_pks, cal_pks, plotFigure=None):
     """
     Match uncalibrated peaks with literature energy values.
     """
@@ -1047,9 +1066,21 @@ def match_peaks(data_pks, cal_pks):
             if err < best_err:
                 best_err, best_m, best_b = err, m, b
 
-    print(i, best_err)
+    print("iteration = ",i, "best_error = ",best_err)
     print("cal:",cal)
     print("data:",data)
+    
+    if plotFigure is not None:
+        
+        plt.scatter(data, cal, label=f'min.err = {best_err:.2f}', c="k")
+        xs = np.linspace(data[0], data[-1], 10)
+        plt.plot(xs, best_m * xs + best_b , c="r",
+             label="y = {:.2f} x + {:.2f}".format(best_m,best_b))
+        plt.xlabel("Energy (ADC)", fontsize=24)
+        plt.ylabel("Energy (keV)", fontsize=24)
+        plt.legend(fontsize=24)
+        plt.show()
+    #exit()
     plt.scatter(data, cal, label=f'min.err:{err:.2e}')
     xs = np.linspace(data[0], data[-1], 10)
     plt.plot(xs, best_m * xs + best_b , c="r",
@@ -1084,11 +1115,15 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
     if len(energy_series) < 100:
         return 1, 0
 
-    #get 10 most prominent ~high e peaks
+    #get most prominent ~high e peaks
     max_adc = np.amax(energy_series)
-    energy_hi = energy_series  #[ (energy_series > np.percentile(energy_series, 20)) & (energy_series < np.percentile(energy_series, 99.9))]
-
-    peak_energies, peak_e_err = get_most_prominent_peaks(energy_hi,)
+    energy_hi = energy_series[(energy_series > np.percentile(energy_series, 20)) & \
+                              (energy_series < np.percentile(energy_series, 99.9))] #uncommented range
+    peak_energies = get_most_prominent_peaks(energy_hi,
+                                            xlo=np.percentile(energy_series, 20),
+                                            xhi=np.percentile(energy_series, 99.9),
+                                            xpb=4,
+                                            max_num_peaks = len(cal_peaks)) #modified limits and binwidth
     rough_kev_per_adc, rough_kev_offset = match_peaks(peak_energies, cal_peaks)
     e_cal_rough = rough_kev_per_adc * energy_series + rough_kev_offset
 
@@ -1115,7 +1150,7 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
     peak_num = len(cal_peaks)
     centers = np.zeros(peak_num)
     fit_result_map = {}
-    bin_size = 0.2  #keV
+    bin_size = 0.3  #keV
 
     if plotFigure is not None:
         plot_map = {}
@@ -1153,7 +1188,7 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
             plt.ion()
             plt.figure(figsize=(12, 6))
             plt.subplot(121)
-            plt.plot(bin_centers, peak_hist, color="k", ls="steps")
+            plt.plot(bin_centers, peak_hist, color="k", ls="-")
             plt.subplot(122)
             plt.hist(e_cal_rough, bins=2700, histtype="step")
             input("-->press any key to continue...")
@@ -1167,16 +1202,17 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
         # inp = input("q to quit...")
         # if inp == "q": exit()
 
-        bounds = ([0.9 * guess_e, 0.5 * guess_sigma, 0, 0, 0, 0, 0], [
+        bounds = ([0.9 * guess_e, 0.5 * guess_sigma, 0, 0, 0, 0, -0.1, 0], [
             1.1 * guess_e, 2 * guess_sigma, 0.1, 0.75, window_width_in_adc, 10,
-            5 * guess_area
+            0.1, 5 * guess_area
         ])
-        params = fit_binned(
+        params, _ = fit_hist(
             radford_peak,
             peak_hist,
-            bin_centers,
-            [guess_e, guess_sigma, 1E-3, 0.7, 5, 0, guess_area],
-        )  #bounds=bounds)
+            bins,
+            guess = [guess_e, guess_sigma, 1E-3, 0.7, 5, 0, 0, guess_area],
+            bounds=bounds)
+        print(params[1], params[5], params[6])
 
         plt.plot(bin_centers, radford_peak(bin_centers, *params), color="r")
 
@@ -1194,44 +1230,53 @@ def calibrate_tl208(energy_series, cal_peaks=None, plotFigure=None):
 
     if plotFigure is not None:
 
-        plt.figure(plotFigure.number)
-        plt.clf()
-
-        grid = gs.GridSpec(peak_num, 3)
-        ax_line = plt.subplot(grid[:, 1])
-        ax_spec = plt.subplot(grid[:, 2])
+        fig, axs = plt.subplots(peak_num, 1, figsize=(12,16)) 
+        
+        #grid = gs.GridSpec(peak_num, 1, hspace=0.5)
+        #ax_line = plt.subplot(grid[:, 1])  #changed plotting arrangement, added 2 figure objects
+        #ax_spec = plt.subplot(grid[:, 2])
 
         for i, energy in enumerate(cal_peaks):
-            ax_peak = plt.subplot(grid[i, 0])
+            ax_peak = plt.subplot(axs[i])
             bin_centers, peak_hist = plot_map[energy]
+            bin_centers_keV = bin_centers * rough_kev_per_adc + rough_kev_offset
             params = fit_result_map[energy]
             ax_peak.plot(
-                bin_centers * rough_kev_per_adc + rough_kev_offset,
+                bin_centers_keV,
                 peak_hist,
-                ls="steps-mid",
-                color="k")
+                ds="steps-mid",
+                color="b",
+                label="data")
             fit = radford_peak(bin_centers, *params)
-            ax_peak.plot(
-                bin_centers * rough_kev_per_adc + rough_kev_offset,
-                fit,
-                color="b")
-
-        ax_peak.set_xlabel("Energy [keV]")
-
+            _, gaussian, bg, st, le = radford_peak(bin_centers, *params, components=True)
+            ax_peak.plot(bin_centers_keV, fit, color="r", label="total fit")
+            ax_peak.plot(bin_centers_keV, gaussian, color="c", label="gauss")
+            ax_peak.plot(bin_centers_keV, le, color="g", label="le_tail")
+            ax_peak.plot(bin_centers_keV, st, color="y", label="step")
+            ax_peak.plot(bin_centers_keV, bg, color="k", label="linear bg")
+            ax_peak.legend(loc="upper right")
+            ax_peak.set_xlabel("Energy [keV]")
+        
+        plt.figure()
+        ax_line = plt.subplot()
         ax_line.scatter(
             centers,
-            cal_peaks,
-        )
-
+            cal_peaks)
         x = np.arange(0, max_adc, 1)
         ax_line.plot(x, linear_cal[0] * x + linear_cal[1])
-        ax_line.set_xlabel("ADC")
+        ax_line.set_xlabel("Energy [ADC]")
         ax_line.set_ylabel("Energy [keV]")
-
+        
+        plt.figure()
+        ax_spec = plt.subplot()
         energies_cal = energy_series * linear_cal[0] + linear_cal[1]
         peak_hist, bins = np.histogram(energies_cal, bins=np.arange(0, 2700))
-        ax_spec.semilogy(pgh.get_bin_centers(bins), peak_hist, ls="steps-mid")
-        ax_spec.set_xlabel("Energy [keV]")
+        ax_spec.semilogy(get_bin_centers(bins), peak_hist, ds="steps-mid")
+        for pk in cal_peaks:
+            ax_spec.axvline(pk, 0, 1e5, color='r')
+            ax_spec.semilogy(pgh.get_bin_centers(bins), peak_hist, ls="steps-mid")
+            ax_spec.set_xlabel("Energy [keV]")
+            ax_spec.set_ylabel("Counts")
 
     return linear_cal
 

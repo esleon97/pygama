@@ -395,6 +395,15 @@ def taylor_mode_max(hist, bins, var=None, mode_guess=None, n_bins=5, poissonLL=F
 
     Returns
     -------
+    (maximum, mode) : tuple (float, float)
+        maximum : the estimated maximum value of the peak
+        mode : the estimated x-position of the maximum
+    (pars, cov) : tuple (array, matrix)
+        pars : 2-tuple with the parameters (mode, max) of the fit
+            mode : the estimated x-position of the maximum
+            maximum : the estimated maximum value of the peak
+        cov : 2x2 matrix of floats
+            The covariance matrix for the 2 parameters in pars
     pars : 2-tuple with the parameters (mode, max) of the fit
         mode : the estimated x-position of the maximum
         maximum : the estimated maximum value of the peak
@@ -848,7 +857,7 @@ def radford_fwhm(sigma, htail, tau,  cov = None):
 
     fwfm_unc = np.sqrt(np.dot(grad2, np.dot(cov, grad2)))
 
-    return upper_hm - lower_hm, fwfm_unc
+    return fwhm, fwfm_unc
 
 def radford_peakshape_derivative(E, pars, step_norm):
     n_sig, mu, sigma, htail, tau, n_bkg, hstep = pars

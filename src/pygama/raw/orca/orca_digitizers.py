@@ -1,9 +1,6 @@
-<<<<<<< HEAD:src/pygama/raw/orca/orca_digitizers.py
+
 import sys
 
-=======
-import sys, copy
->>>>>>> Added dwt processor:pygama/io/orca_digitizers.py
 import numpy as np
 
 from pygama.lgdo import Table
@@ -290,16 +287,7 @@ class ORCAGretina4M(OrcaDecoder):
             if len(dec_vals_list) == 0:
                 print("ORGretina4MModel: Error: decoded_values not built yet!")
                 return None
-<<<<<<< HEAD:src/pygama/raw/orca/orca_digitizers.py
-<<<<<<< HEAD:src/pygama/raw/orca/orca_digitizers.py
             return list(dec_vals_list)[0][1] # Get first thing we find
-=======
-            return dec_vals_list[0][1]
->>>>>>> Modified analysis files:pygama/io/orca_digitizers.py
-=======
-            return dec_vals_list[0][1]
-            return list(dec_vals_list)[0][1] # Get first thing we find
->>>>>>> modified analysis files:pygama/io/orca_digitizers.py
         if channel in self.decoded_values: return self.decoded_values[channel]
         print("ORGretina4MModel: Error: No decoded values for channel", channel)
         print(self.decoded_values.keys())

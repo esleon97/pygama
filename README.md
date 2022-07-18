@@ -1,5 +1,4 @@
 # pygama
-<<<<<<< HEAD
 
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/legend-exp/pygama?logo=git)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/legend-exp/pygama/pygama/main?label=main%20branch&logo=github)](https://github.com/legend-exp/pygama/actions)
@@ -18,7 +17,7 @@
 * generating and selecting high-level event data for further analysis
 
 Check out the [online documentation](https://legend-exp.github.io/pygama).
-=======
+
 Python based package for decoding ORCA data and processing it with pandas
 
 ## usage

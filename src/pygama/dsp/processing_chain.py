@@ -1193,7 +1193,7 @@ class LGDOWaveformIOManager(IOManager):
 
 
 def build_processing_chain(lh5_in: lgdo.Table, dsp_config: dict | str, db_dict: dict = None,
-                           outputs: list[str] = None, block_width: int = 16) -> tuple[ProcessingChain, list[str], lgdo.Table]:
+                           outputs: list[str] = None, block_width: int = 16, verbosity: int = 0) -> tuple[ProcessingChain, list[str], lgdo.Table]:
     """Produces a :class:`ProcessingChain` object and an LH5
     :class:`~.lgdo.table.Table` for output parameters from an input LH5
     :class:`~.lgdo.table.Table` and a JSON recipe.

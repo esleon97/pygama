@@ -61,10 +61,12 @@ several advantages:
 
 from ._processors.bl_subtract import bl_subtract
 from ._processors.convolutions import cusp_filter, t0_filter, zac_filter
+from ._processors.dwt import dwt
 from ._processors.fftw import dft, inv_dft, psd
 from ._processors.fixed_time_pickoff import fixed_time_pickoff
 from ._processors.gaussian_filter1d import gaussian_filter1d
 from ._processors.get_multi_local_extrema import get_multi_local_extrema
+from ._processors.integral import simpson
 from ._processors.linear_slope_fit import linear_slope_fit
 from ._processors.log_check import log_check
 from ._processors.min_max import min_max

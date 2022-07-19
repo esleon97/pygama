@@ -30,7 +30,7 @@ def dwt(level, wavelet):
     "dwt":{
         "function": "dwt",
         "module": "pygama.dsp.processors",
-        "args": ["wf_blsub", "dwt(250,f)"],
+        "args": ["wf_blsub", "dwt(250)"],
         "unit": "ADC",
         "prereqs": ["wf_blsub"],
         "init_args": ["3", "'haar'"]

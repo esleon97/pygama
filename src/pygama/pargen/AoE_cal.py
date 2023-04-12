@@ -38,7 +38,6 @@ def load_aoe(
     cal_energy_param: str,
     cut_field: str = "Cal_cuts",
 ) -> tuple(np.array, np.array, np.array, np.array):
-
     """
     Loads in the A/E parameters needed and applies calibration constants to energy
     """
@@ -98,7 +97,6 @@ def PDF_AoE(
 def unbinned_aoe_fit(
     aoe: np.array, display: int = 0, verbose: bool = False
 ) -> tuple(np.array, np.array):
-
     """
     Fitting function for A/E, first fits just a gaussian before using the full pdf to fit
     if fails will return NaN values
@@ -193,7 +191,6 @@ def sigma_fit(x: np.array, a: float, b: float) -> np.array:
 def AoEcorrection(
     energy: np.array, aoe: np.array, eres: list, plot_dict: dict = {}, display: int = 0
 ) -> tuple(np.array, np.array):
-
     """
     Calculates the corrections needed for the energy dependence of the A/E.
     Does this by fitting the compton continuum in slices and then applies fits to the centroid and variance.
@@ -483,7 +480,6 @@ def AoEcorrection(
 def plot_compt_bands_overlayed(
     aoe: np.array, energy: np.array, eranges: list[tuple], aoe_range: list[float] = None
 ) -> None:
-
     """
     Function to plot various compton bands to check energy dependence and corrections
     """
@@ -509,7 +505,6 @@ def plot_compt_bands_overlayed(
 def plot_dt_dep(
     aoe: np.array, energy: np.array, dt: np.array, erange: list[tuple], title: str
 ) -> None:
-
     """
     Function to produce 2d histograms of A/E against drift time to check dependencies
     """
@@ -599,7 +594,6 @@ def unbinned_energy_fit(
     guess=None,
     verbose: bool = False,
 ) -> tuple(np.array, np.array):
-
     """
     Fitting function for energy peaks used to calculate survival fractions
     """
@@ -607,7 +601,6 @@ def unbinned_energy_fit(
         energy, dx=0.5, range=(np.nanmin(energy), np.nanmax(energy))
     )
     if guess is None:
-
         x0 = energy_guess(
             hist,
             bins,
@@ -765,7 +758,6 @@ def get_aoe_cut_fit(
     eres_pars: list,
     display: int = 1,
 ) -> float:
-
     """
     Determines A/E cut by sweeping through values and for each one fitting the DEP to determine how many events survive.
     Then interpolates to get cut value at desired DEP survival fraction (typically 90%)
@@ -838,7 +830,6 @@ def get_sf(
     eres_pars: list,
     display: int = 0,
 ) -> tuple(np.array, np.array, np.array, float, float):
-
     """
     Calculates survival fraction for gamma lines using fitting method as in cut determination
     """
@@ -863,7 +854,6 @@ def get_sf(
     final_cut_vals = []
     for cut_val in cut_vals:
         try:
-
             sf, err, cut_pars, surv_pars = get_survival_fraction(
                 peak_energy, peak_aoe, cut_val, peak, eres_pars
             )
@@ -907,7 +897,6 @@ def compton_sf(
     eres: list[float, float],
     display: int = 1,
 ) -> tuple(float, np.array, list):
-
     """
     Determines survival fraction for compton continuum by basic counting
     """
@@ -935,7 +924,6 @@ def get_sf_no_sweep(
     aoe_high_cut_val: float = None,
     display: int = 1,
 ) -> tuple(float, float):
-
     """
     Calculates survival fraction for gamma line without sweeping through values
     """
@@ -969,7 +957,6 @@ def compton_sf_no_sweep(
     aoe_high_cut_val: float = None,
     display: int = 1,
 ) -> float:
-
     """
     Calculates survival fraction for compton contiuum without sweeping through values
     """
@@ -998,7 +985,6 @@ def get_classifier(
     mu_pars: list[float, float],
     sigma_pars: list[float, float],
 ) -> np.array:
-
     """
     Applies correction to A/E energy dependence
     """
@@ -1231,28 +1217,39 @@ def cal_aoe(
     else:
         aoe = aoe_uncorr
 
-    aoe_tmp = aoe[(energy > 1000) & (energy < 1300) & (aoe > 0)]  # [:20000]
-    bulk_pars, bulk_errs = unbinned_aoe_fit(aoe_tmp, display=0)
+    try:
+        aoe_tmp = aoe[(energy > 1000) & (energy < 1300) & (aoe > 0)]  # [:20000]
+        bulk_pars, bulk_errs = unbinned_aoe_fit(aoe_tmp, display=0)
+    except:
+        bulk_pars = np.full(8, np.nan)
+        log.error("1000-1300 keV mean determination failed")
 
-    log.info("Starting A/E correction")
-    mu_pars, sigma_pars, results_dict = AoEcorrection(energy, aoe, eres_pars)
-    log.info("Finished A/E correction")
+    try:
+        log.info("Starting A/E correction")
+        mu_pars, sigma_pars, results_dict = AoEcorrection(energy, aoe, eres_pars)
+        log.info("Finished A/E correction")
 
-    classifier = get_classifier(aoe, energy, mu_pars, sigma_pars)
+        classifier = get_classifier(aoe, energy, mu_pars, sigma_pars)
 
-    cut = get_aoe_cut_fit(energy, classifier, 1592, (40, 20), 0.9, eres_pars, display=0)
+    except:
+        log.error("A/E calibration failed")
+        mean_pars = np.full(2, np.nan)
+        sigma_pars = np.full(2, np.nan)
+
+    try:
+        cut = get_aoe_cut_fit(
+            energy, classifier, 1592, (40, 20), 0.9, eres_pars, display=0
+        )
+    except:
+        log.error("A/E cut determination failed")
+        cut = np.nan
 
     cal_dict.update(
         {
             "AoE_Corrected": {
                 "expression": f"(((A_max/{energy_param})/(a*{cal_energy_param} +b))-1)",
                 "parameters": {"a": mu_pars[0], "b": mu_pars[1]},
-            }
-        }
-    )
-
-    cal_dict.update(
-        {
+            },
             "AoE_Classifier": {
                 "expression": f"AoE_Corrected/(sqrt(c+(d/{cal_energy_param})**2)/(a*{cal_energy_param} +b))",
                 "parameters": {
@@ -1261,25 +1258,15 @@ def cal_aoe(
                     "c": sigma_pars[0],
                     "d": sigma_pars[1],
                 },
-            }
-        }
-    )
-
-    cal_dict.update(
-        {
+            },
             "AoE_Low_Cut": {
                 "expression": "AoE_Classifier>a",
                 "parameters": {"a": cut},
-            }
-        }
-    )
-
-    cal_dict.update(
-        {
+            },
             "AoE_Double_Sided_Cut": {
                 "expression": "(b>AoE_Classifier)&(AoE_Classifier>a)",
                 "parameters": {"a": cut, "b": aoe_high_cut},
-            }
+            },
         }
     )
 
@@ -1529,7 +1516,7 @@ def cal_aoe(
             return cal_dict, out_dict
 
     except:
-        log.error("survival fraction determination failed")
+        log.error("A/E Survival fraction determination failed")
         out_dict = {
             "correction_fit_results": results_dict,
             "A/E_Energy_param": "cuspEmax",

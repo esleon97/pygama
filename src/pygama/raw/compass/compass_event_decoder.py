@@ -83,7 +83,6 @@ class CompassEventDecoder(DataDecoder):
         # Loop over crates, cards, build decoded values for enabled channels
         for board in self.header["boards"].keys():
             for channel in self.header["boards"][board]["channels"].keys():
-
                 bc = get_bc(int(board), int(channel))
 
                 self.decoded_values[bc] = copy.deepcopy(compass_decoded_values)
@@ -95,7 +94,7 @@ class CompassEventDecoder(DataDecoder):
                     )  # the header is a struct, so we need to return its value
                 )
 
-    def get_key_lists(self) -> list[str]:
+    def get_key_lists(self) -> list[list[str]]:
         key_lists = []
         for key in self.decoded_values.keys():
             key_lists.append(key)

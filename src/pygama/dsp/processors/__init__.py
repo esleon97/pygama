@@ -86,6 +86,7 @@ from .pole_zero import double_pole_zero, pole_zero
 from .presum import presum
 from .pulse_injector import inject_exp_pulse, inject_sig_pulse
 from .saturation import saturation
+from .svm import svm_predict
 from .soft_pileup_corr import soft_pileup_corr, soft_pileup_corr_bl
 from .time_over_threshold import time_over_threshold
 from .time_point_thresh import time_point_thresh
@@ -127,6 +128,7 @@ __all__ = [
     "presum",
     "inject_exp_pulse",
     "inject_sig_pulse",
+    "svm_predict",
     "saturation",
     "peak_snr_threshold",
     "soft_pileup_corr",

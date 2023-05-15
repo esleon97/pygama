@@ -68,7 +68,7 @@ from .fixed_time_pickoff import fixed_time_pickoff
 from .gaussian_filter1d import gaussian_filter1d
 from .get_multi_local_extrema import get_multi_local_extrema
 from .histogram import histogram, histogram_stats
-from .linear_slope_fit import linear_slope_fit
+from .linear_slope_fit import linear_slope_diff, linear_slope_fit
 from .log_check import log_check
 from .min_max import min_max, min_max_norm
 from .moving_windows import (
@@ -89,7 +89,7 @@ from .saturation import saturation
 from .svm import svm_predict
 from .soft_pileup_corr import soft_pileup_corr, soft_pileup_corr_bl
 from .time_over_threshold import time_over_threshold
-from .time_point_thresh import time_point_thresh
+from .time_point_thresh import interpolated_time_point_thresh, time_point_thresh
 from .trap_filters import asym_trap_filter, trap_filter, trap_norm, trap_pickoff
 from .upsampler import interpolating_upsampler, upsampler
 from .wiener_filter import wiener_filter
@@ -110,6 +110,7 @@ __all__ = [
     "histogram",
     "histogram_stats",
     "linear_slope_fit",
+    "linear_slope_diff",
     "log_check",
     "min_max",
     "min_max_norm",
@@ -134,6 +135,7 @@ __all__ = [
     "soft_pileup_corr",
     "soft_pileup_corr_bl",
     "time_point_thresh",
+    "interpolated_time_point_thresh",
     "asym_trap_filter",
     "trap_filter",
     "trap_norm",
